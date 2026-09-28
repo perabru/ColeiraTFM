@@ -1,0 +1,2780 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>AgroTrack | Monitoramento de Gado</title>
+
+    <!-- MQTT.JS -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <style>
+
+        /* =====================================================
+           CONFIGURAÇÕES GERAIS
+        ===================================================== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --verde-escuro: #173c28;
+            --verde: #28643d;
+            --verde-claro: #62a84b;
+            --verde-limao: #a4d65e;
+
+            --terra: #805d36;
+            --terra-claro: #c49a6c;
+
+            --creme: #f4f0df;
+            --bege: #e4dcc6;
+
+            --branco: #ffffff;
+            --preto: #142018;
+
+            --cinza: #69766e;
+            --vermelho: #d85345;
+            --amarelo: #e7ad36;
+
+            --sombra:
+                0 18px 50px rgba(21, 53, 32, 0.10);
+
+            --raio: 24px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family:
+                Inter,
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #f2f0e3 0%,
+                    #e8ead9 100%
+                );
+
+            color: var(--preto);
+
+            min-height: 100vh;
+        }
+
+        /* =====================================================
+           BACKGROUND AGRO
+        ===================================================== */
+
+        body::before {
+            content: "";
+
+            position: fixed;
+
+            width: 600px;
+            height: 600px;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(94, 155, 77, 0.12),
+                    transparent 70%
+                );
+
+            top: -200px;
+            right: -200px;
+
+            pointer-events: none;
+        }
+
+        body::after {
+            content: "";
+
+            position: fixed;
+
+            width: 500px;
+            height: 500px;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(133, 96, 54, 0.10),
+                    transparent 70%
+                );
+
+            bottom: -200px;
+            left: -200px;
+
+            pointer-events: none;
+        }
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        .header {
+            background:
+                linear-gradient(
+                    135deg,
+                    #143624,
+                    #225237
+                );
+
+            color: white;
+
+            padding:
+                22px
+                6%;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+            box-shadow:
+                0 15px 45px
+                rgba(20, 54, 36, 0.18);
+
+            position: relative;
+
+            overflow: hidden;
+        }
+
+        .header::after {
+            content: "";
+
+            position: absolute;
+
+            width: 350px;
+            height: 350px;
+
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(255,255,255,.08),
+                    transparent 70%
+                );
+
+            right: -70px;
+            top: -160px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1;
+        }
+
+        .logo {
+            width: 58px;
+            height: 58px;
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #a9d76b,
+                    #5fa249
+                );
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-size: 30px;
+
+            box-shadow:
+                inset 0 0 0 1px
+                rgba(255,255,255,.25);
+        }
+
+        .brand h1 {
+            font-size: 25px;
+            letter-spacing: -.5px;
+        }
+
+        .brand p {
+            margin-top: 3px;
+
+            color:
+                rgba(255,255,255,.68);
+
+            font-size: 13px;
+        }
+
+        /* =====================================================
+           STATUS MQTT
+        ===================================================== */
+
+        .mqtt-status {
+            z-index: 1;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding:
+                10px
+                16px;
+
+            border-radius: 50px;
+
+            background:
+                rgba(255,255,255,.1);
+
+            backdrop-filter:
+                blur(10px);
+
+            border:
+                1px solid
+                rgba(255,255,255,.12);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+
+            border-radius: 50%;
+
+            background: var(--amarelo);
+
+            box-shadow:
+                0 0 14px
+                var(--amarelo);
+        }
+
+        .status-dot.online {
+            background: #6ddd76;
+
+            box-shadow:
+                0 0 14px
+                #6ddd76;
+        }
+
+        .status-dot.offline {
+            background: #ff6a5e;
+
+            box-shadow:
+                0 0 14px
+                #ff6a5e;
+        }
+
+        /* =====================================================
+           CONTAINER
+        ===================================================== */
+
+        .container {
+            width: 92%;
+            max-width: 1450px;
+
+            margin:
+                35px
+                auto
+                50px;
+        }
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .hero {
+            position: relative;
+
+            padding:
+                36px
+                40px;
+
+            border-radius:
+                30px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #24573a,
+                    #347a46
+                );
+
+            color: white;
+
+            overflow: hidden;
+
+            box-shadow:
+                var(--sombra);
+
+            margin-bottom:
+                28px;
+        }
+
+        .hero::after {
+            content: "🐄";
+
+            position: absolute;
+
+            right: 55px;
+            bottom: -30px;
+
+            font-size: 150px;
+
+            opacity: .14;
+        }
+
+        .hero-small {
+            font-size: 13px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 2px;
+
+            color: #c9e6b7;
+
+            margin-bottom: 10px;
+        }
+
+        .hero h2 {
+            font-size: 34px;
+
+            max-width: 650px;
+
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin-top: 12px;
+
+            color:
+                rgba(255,255,255,.75);
+
+            max-width: 650px;
+
+            line-height: 1.6;
+        }
+
+        /* =====================================================
+           GRID
+        ===================================================== */
+
+        .cards {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background:
+                rgba(255,255,255,.75);
+
+            backdrop-filter:
+                blur(15px);
+
+            border:
+                1px solid
+                rgba(255,255,255,.75);
+
+            border-radius:
+                var(--raio);
+
+            padding:
+                22px;
+
+            box-shadow:
+                var(--sombra);
+
+            transition:
+                transform .25s ease,
+                box-shadow .25s ease;
+        }
+
+        .card:hover {
+            transform:
+                translateY(-3px);
+
+            box-shadow:
+                0 22px 55px
+                rgba(26, 67, 39, .14);
+        }
+
+        .card-header {
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                18px;
+        }
+
+        .card-title {
+            color:
+                var(--cinza);
+
+            font-size: 13px;
+
+            text-transform:
+                uppercase;
+
+            letter-spacing:
+                .8px;
+
+            font-weight:
+                700;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+
+            border-radius:
+                14px;
+
+            display: flex;
+
+            justify-content:
+                center;
+
+            align-items:
+                center;
+
+            font-size:
+                22px;
+
+            background:
+                #e9efdf;
+        }
+
+        .card-value {
+            font-size:
+                30px;
+
+            font-weight:
+                800;
+
+            color:
+                var(--verde-escuro);
+        }
+
+        .card-sub {
+            font-size:
+                12px;
+
+            color:
+                var(--cinza);
+
+            margin-top:
+                6px;
+        }
+
+        /* =====================================================
+           ÁREA PRINCIPAL
+        ===================================================== */
+
+        .main-grid {
+            display: grid;
+
+            grid-template-columns:
+                1.45fr
+                .75fr;
+
+            gap:
+                22px;
+        }
+
+        /* =====================================================
+           MAPA
+        ===================================================== */
+
+        .map-card {
+            background:
+                rgba(255,255,255,.80);
+
+            border-radius:
+                var(--raio);
+
+            padding:
+                20px;
+
+            box-shadow:
+                var(--sombra);
+        }
+
+        .section-header {
+            display: flex;
+
+            align-items: center;
+
+            justify-content:
+                space-between;
+
+            margin-bottom:
+                16px;
+        }
+
+        .section-title {
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+        }
+
+        .section-title h3 {
+            color:
+                var(--verde-escuro);
+
+            font-size:
+                19px;
+        }
+
+        .map-wrapper {
+            height:
+                480px;
+
+            width:
+                100%;
+
+            border-radius:
+                19px;
+
+            overflow:
+                hidden;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #dce4ce,
+                    #becba9
+                );
+
+            position:
+                relative;
+        }
+
+        #mapFrame {
+            width: 100%;
+            height: 100%;
+
+            border: 0;
+
+            display: none;
+        }
+
+        .map-placeholder {
+            position:
+                absolute;
+
+            inset: 0;
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            justify-content:
+                center;
+
+            align-items:
+                center;
+
+            text-align:
+                center;
+
+            padding:
+                30px;
+
+            color:
+                var(--verde-escuro);
+        }
+
+        .map-placeholder .big {
+            font-size:
+                64px;
+
+            margin-bottom:
+                12px;
+        }
+
+        .map-placeholder p {
+            max-width:
+                420px;
+
+            margin-top:
+                8px;
+
+            color:
+                #5b6c60;
+
+            line-height:
+                1.6;
+        }
+
+        /* =====================================================
+           COLUNA LATERAL
+        ===================================================== */
+
+        .side-column {
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            gap:
+                20px;
+        }
+
+        /* =====================================================
+           STATUS DO ANIMAL
+        ===================================================== */
+
+        .animal-card {
+            background:
+                linear-gradient(
+                    145deg,
+                    #193c29,
+                    #2a6140
+                );
+
+            color:
+                white;
+
+            border-radius:
+                var(--raio);
+
+            padding:
+                24px;
+
+            box-shadow:
+                var(--sombra);
+        }
+
+        .animal-top {
+            display:
+                flex;
+
+            gap:
+                16px;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                24px;
+        }
+
+        .animal-avatar {
+            width:
+                70px;
+
+            height:
+                70px;
+
+            border-radius:
+                22px;
+
+            background:
+                rgba(255,255,255,.12);
+
+            display:
+                flex;
+
+            justify-content:
+                center;
+
+            align-items:
+                center;
+
+            font-size:
+                36px;
+        }
+
+        .animal-name {
+            font-size:
+                22px;
+
+            font-weight:
+                800;
+        }
+
+        .animal-id {
+            margin-top:
+                5px;
+
+            font-size:
+                12px;
+
+            color:
+                rgba(255,255,255,.60);
+        }
+
+        .animal-status {
+            display:
+                inline-flex;
+
+            align-items:
+                center;
+
+            gap:
+                7px;
+
+            margin-top:
+                9px;
+
+            padding:
+                6px 10px;
+
+            border-radius:
+                30px;
+
+            background:
+                rgba(107,221,118,.13);
+
+            font-size:
+                12px;
+
+            color:
+                #bdf5c3;
+        }
+
+        .details {
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr
+                1fr;
+
+            gap:
+                12px;
+        }
+
+        .detail {
+            padding:
+                14px;
+
+            border-radius:
+                15px;
+
+            background:
+                rgba(255,255,255,.07);
+        }
+
+        .detail small {
+            display:
+                block;
+
+            color:
+                rgba(255,255,255,.55);
+
+            font-size:
+                11px;
+
+            margin-bottom:
+                6px;
+        }
+
+        .detail strong {
+            font-size:
+                14px;
+        }
+
+        /* =====================================================
+           BARRAS
+        ===================================================== */
+
+        .metric-box {
+            background:
+                rgba(255,255,255,.80);
+
+            border-radius:
+                var(--raio);
+
+            padding:
+                22px;
+
+            box-shadow:
+                var(--sombra);
+        }
+
+        .metric-row {
+            margin-top:
+                20px;
+        }
+
+        .metric-label {
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            margin-bottom:
+                9px;
+
+            font-size:
+                13px;
+
+            color:
+                var(--cinza);
+        }
+
+        .progress {
+            height:
+                10px;
+
+            border-radius:
+                20px;
+
+            background:
+                #e3e8da;
+
+            overflow:
+                hidden;
+        }
+
+        .progress-bar {
+            width:
+                0%;
+
+            height:
+                100%;
+
+            border-radius:
+                inherit;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #4f984d,
+                    #91ca58
+                );
+
+            transition:
+                width .5s ease;
+        }
+
+        #wifiBar {
+            background:
+                linear-gradient(
+                    90deg,
+                    #96733c,
+                    #62a84b
+                );
+        }
+
+        /* =====================================================
+           COORDENADAS
+        ===================================================== */
+
+        .coordinates {
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr
+                1fr
+                1fr;
+
+            gap:
+                12px;
+
+            margin-top:
+                16px;
+        }
+
+        .coordinate {
+            background:
+                #edf1e7;
+
+            padding:
+                15px;
+
+            border-radius:
+                15px;
+        }
+
+        .coordinate small {
+            color:
+                var(--cinza);
+
+            display:
+                block;
+
+            margin-bottom:
+                7px;
+        }
+
+        .coordinate strong {
+            color:
+                var(--verde-escuro);
+
+            word-break:
+                break-word;
+        }
+
+        /* =====================================================
+           LOG
+        ===================================================== */
+
+        .log-card {
+            margin-top:
+                22px;
+
+            background:
+                #17271d;
+
+            border-radius:
+                var(--raio);
+
+            padding:
+                22px;
+
+            box-shadow:
+                var(--sombra);
+
+            color:
+                white;
+        }
+
+        .log-title {
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                15px;
+        }
+
+        #mqttLog {
+            height:
+                180px;
+
+            overflow-y:
+                auto;
+
+            font-family:
+                Consolas,
+                monospace;
+
+            font-size:
+                12px;
+
+            line-height:
+                1.7;
+
+            background:
+                rgba(0,0,0,.16);
+
+            border-radius:
+                14px;
+
+            padding:
+                15px;
+
+            color:
+                #bce6be;
+        }
+
+        .log-line {
+            padding:
+                3px 0;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.03);
+        }
+
+        .log-time {
+            color:
+                #779381;
+        }
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+            text-align:
+                center;
+
+            color:
+                var(--cinza);
+
+            padding:
+                25px;
+
+            font-size:
+                12px;
+        }
+
+        /* =====================================================
+           PULSO
+        ===================================================== */
+
+        .pulse {
+            animation:
+                pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0% {
+                transform:
+                    scale(1);
+            }
+
+            50% {
+                transform:
+                    scale(1.08);
+            }
+
+            100% {
+                transform:
+                    scale(1);
+            }
+        }
+
+        /* =====================================================
+           RESPONSIVO
+        ===================================================== */
+
+        @media(max-width: 1100px) {
+
+            .cards {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns:
+                    1fr;
+            }
+
+        }
+
+        @media(max-width: 650px) {
+
+            .header {
+                flex-direction:
+                    column;
+
+                align-items:
+                    flex-start;
+            }
+
+            .cards {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .hero {
+                padding:
+                    28px 24px;
+            }
+
+            .hero h2 {
+                font-size:
+                    27px;
+            }
+
+            .hero::after {
+                font-size:
+                    100px;
+
+                right:
+                    10px;
+            }
+
+            .coordinates {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .details {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .map-wrapper {
+                height:
+                    350px;
+            }
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+
+<header class="header">
+
+    <div class="brand">
+
+        <div class="logo">
+            🌾
+        </div>
+
+        <div>
+            <h1>
+                AgroTrack
+            </h1>
+
+            <p>
+                Monitoramento Inteligente de Gado
+            </p>
+        </div>
+
+    </div>
+
+    <div class="mqtt-status">
+
+        <div
+            id="brokerDot"
+            class="status-dot"
+        ></div>
+
+        <span id="brokerStatus">
+            Conectando ao HiveMQ...
+        </span>
+
+    </div>
+
+</header>
+
+<!-- =========================================================
+     CONTEÚDO
+========================================================= -->
+
+<main class="container">
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="hero-small">
+            Fazenda conectada
+        </div>
+
+        <h2>
+            Monitoramento em tempo real
+            da localização do rebanho
+        </h2>
+
+        <p>
+            Acompanhe a coleira inteligente,
+            localização, conectividade e alimentação
+            diretamente pela rede MQTT.
+        </p>
+
+    </section>
+
+
+    <!-- =====================================================
+         CARDS SUPERIORES
+    ====================================================== -->
+
+    <section class="cards">
+
+        <!-- STATUS -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <span class="card-title">
+                    Coleira
+                </span>
+
+                <div class="card-icon">
+                    🐄
+                </div>
+
+            </div>
+
+            <div
+                id="statusColeira"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="ultimaAtualizacao"
+                class="card-sub"
+            >
+                Aguardando comunicação...
+            </div>
+
+        </div>
+
+
+        <!-- WIFI -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <span class="card-title">
+                    Sinal Wi-Fi
+                </span>
+
+                <div class="card-icon">
+                    📶
+                </div>
+
+            </div>
+
+            <div class="card-value">
+
+                <span id="wifiRSSI">
+                    --
+                </span>
+
+                <span
+                    style="
+                    font-size:14px;
+                    color:#69766e;
+                    "
+                >
+                    dBm
+                </span>
+
+            </div>
+
+            <div
+                id="wifiQualidade"
+                class="card-sub"
+            >
+                Aguardando sinal
+            </div>
+
+        </div>
+
+
+        <!-- BATERIA -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <span class="card-title">
+                    Alimentação
+                </span>
+
+                <div class="card-icon">
+                    🔋
+                </div>
+
+            </div>
+
+            <div
+                id="bateriaValor"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div
+                id="bateriaDescricao"
+                class="card-sub"
+            >
+                Power Bank USB-C
+            </div>
+
+        </div>
+
+
+        <!-- PRECISÃO -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <span class="card-title">
+                    Precisão
+                </span>
+
+                <div class="card-icon">
+                    🎯
+                </div>
+
+            </div>
+
+            <div class="card-value">
+
+                <span id="precisaoValor">
+                    --
+                </span>
+
+                <span
+                    style="
+                    font-size:14px;
+                    color:#69766e;
+                    "
+                >
+                    m
+                </span>
+
+            </div>
+
+            <div class="card-sub">
+                Geolocalização por Wi-Fi
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PRINCIPAL
+    ====================================================== -->
+
+    <section class="main-grid">
+
+        <!-- =========================
+             MAPA
+        ========================== -->
+
+        <div class="map-card">
+
+            <div class="section-header">
+
+                <div class="section-title">
+
+                    <span>
+                        📍
+                    </span>
+
+                    <h3>
+                        Localização do animal
+                    </h3>
+
+                </div>
+
+                <span
+                    id="locationStatus"
+                    style="
+                        font-size:12px;
+                        color:#69766e;
+                    "
+                >
+                    Aguardando dados
+                </span>
+
+            </div>
+
+
+            <div class="map-wrapper">
+
+                <iframe
+                    id="mapFrame"
+                    loading="lazy"
+                ></iframe>
+
+
+                <div
+                    id="mapPlaceholder"
+                    class="map-placeholder"
+                >
+
+                    <div class="big pulse">
+                        🐄
+                    </div>
+
+                    <h3>
+                        Procurando o animal...
+                    </h3>
+
+                    <p>
+                        Assim que a ESP32 publicar
+                        latitude e longitude no HiveMQ,
+                        a localização aparecerá aqui.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- COORDENADAS -->
+
+            <div class="coordinates">
+
+                <div class="coordinate">
+
+                    <small>
+                        Latitude
+                    </small>
+
+                    <strong id="latitude">
+                        --
+                    </strong>
+
+                </div>
+
+
+                <div class="coordinate">
+
+                    <small>
+                        Longitude
+                    </small>
+
+                    <strong id="longitude">
+                        --
+                    </strong>
+
+                </div>
+
+
+                <div class="coordinate">
+
+                    <small>
+                        Precisão
+                    </small>
+
+                    <strong id="precisaoDetalhe">
+                        --
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             COLUNA LATERAL
+        ========================== -->
+
+        <div class="side-column">
+
+
+            <!-- ANIMAL -->
+
+            <div class="animal-card">
+
+                <div class="animal-top">
+
+                    <div class="animal-avatar">
+                        🐮
+                    </div>
+
+                    <div>
+
+                        <div class="animal-name">
+                            Gado 01
+                        </div>
+
+                        <div
+                            id="coleiraID"
+                            class="animal-id"
+                        >
+                            ESP32 aguardando...
+                        </div>
+
+                        <div class="animal-status">
+
+                            <span>
+                                ●
+                            </span>
+
+                            <span id="animalOnline">
+                                Aguardando
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="details">
+
+                    <div class="detail">
+
+                        <small>
+                            Rede
+                        </small>
+
+                        <strong id="wifiSSID">
+                            BRUNO
+                        </strong>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <small>
+                            IP
+                        </small>
+
+                        <strong id="espIP">
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <small>
+                            Tempo ligado
+                        </small>
+
+                        <strong id="uptime">
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <small>
+                            Fonte
+                        </small>
+
+                        <strong>
+                            USB-C
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- MÉTRICAS -->
+
+            <div class="metric-box">
+
+                <div class="section-title">
+
+                    <span>
+                        🌱
+                    </span>
+
+                    <h3>
+                        Saúde da conexão
+                    </h3>
+
+                </div>
+
+
+                <!-- WIFI -->
+
+                <div class="metric-row">
+
+                    <div class="metric-label">
+
+                        <span>
+                            Wi-Fi
+                        </span>
+
+                        <strong id="wifiPercent">
+                            0%
+                        </strong>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="wifiBar"
+                            class="progress-bar"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- BATERIA -->
+
+                <div class="metric-row">
+
+                    <div class="metric-label">
+
+                        <span>
+                            Bateria
+                        </span>
+
+                        <strong id="batteryPercent">
+                            --
+                        </strong>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="batteryBar"
+                            class="progress-bar"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MQTT -->
+
+                <div class="metric-row">
+
+                    <div class="metric-label">
+
+                        <span>
+                            Broker MQTT
+                        </span>
+
+                        <strong id="mqttMetric">
+                            Conectando
+                        </strong>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="mqttBar"
+                            class="progress-bar"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         LOG MQTT
+    ====================================================== -->
+
+    <section class="log-card">
+
+        <div class="log-title">
+
+            <div>
+
+                <strong>
+                    📡 Comunicação MQTT
+                </strong>
+
+                <div
+                    style="
+                    font-size:11px;
+                    color:#789781;
+                    margin-top:4px;
+                    "
+                >
+                    gado/coleira01/#
+                </div>
+
+            </div>
+
+            <span
+                id="contadorMensagens"
+                style="
+                    font-size:12px;
+                    color:#8baa92;
+                "
+            >
+                0 mensagens
+            </span>
+
+        </div>
+
+        <div id="mqttLog">
+
+            <div class="log-line">
+
+                <span class="log-time">
+                    [Sistema]
+                </span>
+
+                Dashboard iniciado.
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer class="footer">
+
+    🌾 AgroTrack • Coleira Inteligente ESP32 •
+    Monitoramento MQTT em tempo real
+
+</footer>
+
+
+<script>
+
+/* ============================================================
+   CONFIGURAÇÃO HIVEMQ
+============================================================ */
+
+const MQTT_HOST =
+    "d5010d2de7ff4182bd09c7fde4c243e5.s1.eu.hivemq.cloud";
+
+const MQTT_PORT = 8884;
+
+const MQTT_USER =
+    "tfm";
+
+const MQTT_PASSWORD =
+    "123456789";
+
+
+/* ============================================================
+   TÓPICOS
+============================================================ */
+
+const TOPIC_BASE =
+    "gado/coleira01/#";
+
+const TOPIC_STATUS =
+    "gado/coleira01/status";
+
+const TOPIC_LOCALIZACAO =
+    "gado/coleira01/localizacao";
+
+const TOPIC_BATERIA =
+    "gado/coleira01/bateria";
+
+const TOPIC_TELEMETRIA =
+    "gado/coleira01/telemetria";
+
+
+/* ============================================================
+   CONTADORES
+============================================================ */
+
+let mensagensRecebidas = 0;
+
+let latitudeAtual = null;
+let longitudeAtual = null;
+
+
+/* ============================================================
+   ELEMENTOS
+============================================================ */
+
+const brokerStatus =
+    document.getElementById("brokerStatus");
+
+const brokerDot =
+    document.getElementById("brokerDot");
+
+const statusColeira =
+    document.getElementById("statusColeira");
+
+const animalOnline =
+    document.getElementById("animalOnline");
+
+const mqttMetric =
+    document.getElementById("mqttMetric");
+
+const mqttBar =
+    document.getElementById("mqttBar");
+
+
+/* ============================================================
+   CLIENT ID
+============================================================ */
+
+const CLIENT_ID =
+    "AgroTrackWeb_" +
+    Math.random()
+        .toString(16)
+        .substring(2, 10);
+
+
+/* ============================================================
+   ENDEREÇO WEBSOCKET HIVEMQ
+============================================================ */
+
+const MQTT_URL =
+    `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
+
+
+/* ============================================================
+   LOG
+============================================================ */
+
+function adicionarLog(texto) {
+
+    const log =
+        document.getElementById("mqttLog");
+
+    const linha =
+        document.createElement("div");
+
+    linha.className =
+        "log-line";
+
+    const agora =
+        new Date();
+
+    const horario =
+        agora.toLocaleTimeString("pt-BR");
+
+    linha.innerHTML =
+        `<span class="log-time">[${horario}]</span> ${texto}`;
+
+    log.appendChild(linha);
+
+    log.scrollTop =
+        log.scrollHeight;
+
+}
+
+
+/* ============================================================
+   CONEXÃO MQTT
+============================================================ */
+
+adicionarLog(
+    "Conectando ao HiveMQ Cloud..."
+);
+
+const client =
+    mqtt.connect(
+        MQTT_URL,
+        {
+
+            username:
+                MQTT_USER,
+
+            password:
+                MQTT_PASSWORD,
+
+            clientId:
+                CLIENT_ID,
+
+            clean:
+                true,
+
+            connectTimeout:
+                10000,
+
+            reconnectPeriod:
+                3000,
+
+            keepalive:
+                60
+
+        }
+    );
+
+
+/* ============================================================
+   MQTT CONECTADO
+============================================================ */
+
+client.on(
+    "connect",
+    function () {
+
+        brokerStatus.innerText =
+            "HiveMQ conectado";
+
+        brokerDot.className =
+            "status-dot online";
+
+        mqttMetric.innerText =
+            "Online";
+
+        mqttBar.style.width =
+            "100%";
+
+        adicionarLog(
+            "✅ Conectado ao HiveMQ."
+        );
+
+
+        client.subscribe(
+            TOPIC_BASE,
+            {
+                qos: 0
+            },
+            function (erro) {
+
+                if (erro) {
+
+                    adicionarLog(
+                        "❌ Erro ao assinar tópico."
+                    );
+
+                } else {
+
+                    adicionarLog(
+                        "📡 Inscrito em " +
+                        TOPIC_BASE
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/* ============================================================
+   MQTT RECONNECT
+============================================================ */
+
+client.on(
+    "reconnect",
+    function () {
+
+        brokerStatus.innerText =
+            "Reconectando...";
+
+        mqttMetric.innerText =
+            "Reconectando";
+
+        mqttBar.style.width =
+            "40%";
+
+        brokerDot.className =
+            "status-dot";
+
+    }
+);
+
+
+/* ============================================================
+   MQTT OFFLINE
+============================================================ */
+
+client.on(
+    "offline",
+    function () {
+
+        brokerStatus.innerText =
+            "HiveMQ offline";
+
+        mqttMetric.innerText =
+            "Offline";
+
+        mqttBar.style.width =
+            "0%";
+
+        brokerDot.className =
+            "status-dot offline";
+
+        adicionarLog(
+            "⚠ Broker MQTT offline."
+        );
+
+    }
+);
+
+
+/* ============================================================
+   ERRO MQTT
+============================================================ */
+
+client.on(
+    "error",
+    function (erro) {
+
+        console.error(
+            erro
+        );
+
+        adicionarLog(
+            "❌ MQTT: " +
+            erro.message
+        );
+
+    }
+);
+
+
+/* ============================================================
+   MENSAGEM MQTT
+============================================================ */
+
+client.on(
+    "message",
+    function (
+        topic,
+        message
+    ) {
+
+        const texto =
+            message.toString();
+
+        mensagensRecebidas++;
+
+        document.getElementById(
+            "contadorMensagens"
+        ).innerText =
+            mensagensRecebidas +
+            " mensagens";
+
+
+        atualizarHora();
+
+
+        adicionarLog(
+            "📥 " +
+            topic +
+            " → " +
+            texto
+        );
+
+
+        /* ===============================
+           STATUS
+        =============================== */
+
+        if (
+            topic ===
+            TOPIC_STATUS
+        ) {
+
+            processarStatus(
+                texto
+            );
+
+            return;
+        }
+
+
+        /* ===============================
+           TENTAR JSON
+        =============================== */
+
+        let dados;
+
+        try {
+
+            dados =
+                JSON.parse(texto);
+
+        } catch {
+
+            return;
+        }
+
+
+        /* ===============================
+           LOCALIZAÇÃO
+        =============================== */
+
+        if (
+            topic ===
+            TOPIC_LOCALIZACAO
+        ) {
+
+            processarLocalizacao(
+                dados
+            );
+
+        }
+
+
+        /* ===============================
+           BATERIA
+        =============================== */
+
+        if (
+            topic ===
+            TOPIC_BATERIA
+        ) {
+
+            processarBateria(
+                dados
+            );
+
+        }
+
+
+        /* ===============================
+           TELEMETRIA
+        =============================== */
+
+        if (
+            topic ===
+            TOPIC_TELEMETRIA
+        ) {
+
+            processarTelemetria(
+                dados
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+function processarStatus(
+    status
+) {
+
+    const online =
+        status.toLowerCase() ===
+        "online";
+
+    statusColeira.innerText =
+        online
+            ? "ONLINE"
+            : "OFFLINE";
+
+    animalOnline.innerText =
+        online
+            ? "Animal conectado"
+            : "Coleira offline";
+
+}
+
+
+/* ============================================================
+   LOCALIZAÇÃO
+============================================================ */
+
+function processarLocalizacao(
+    dados
+) {
+
+    if (
+        dados.latitude ===
+        undefined ||
+        dados.longitude ===
+        undefined
+    ) {
+
+        return;
+
+    }
+
+
+    latitudeAtual =
+        Number(
+            dados.latitude
+        );
+
+    longitudeAtual =
+        Number(
+            dados.longitude
+        );
+
+
+    document.getElementById(
+        "latitude"
+    ).innerText =
+        latitudeAtual.toFixed(6);
+
+
+    document.getElementById(
+        "longitude"
+    ).innerText =
+        longitudeAtual.toFixed(6);
+
+
+    if (
+        dados.precisao_m !==
+        undefined
+    ) {
+
+        const p =
+            Number(
+                dados.precisao_m
+            );
+
+        document.getElementById(
+            "precisaoValor"
+        ).innerText =
+            Math.round(p);
+
+        document.getElementById(
+            "precisaoDetalhe"
+        ).innerText =
+            Math.round(p) +
+            " metros";
+
+    }
+
+
+    if (
+        dados.rssi !==
+        undefined
+    ) {
+
+        atualizarRSSI(
+            dados.rssi
+        );
+
+    }
+
+
+    if (
+        dados.coleira
+    ) {
+
+        document.getElementById(
+            "coleiraID"
+        ).innerText =
+            dados.coleira;
+
+    }
+
+
+    atualizarMapa(
+        latitudeAtual,
+        longitudeAtual
+    );
+
+
+    document.getElementById(
+        "locationStatus"
+    ).innerText =
+        "Localização atualizada";
+
+}
+
+
+/* ============================================================
+   MAPA OPENSTREETMAP
+============================================================ */
+
+function atualizarMapa(
+    latitude,
+    longitude
+) {
+
+    const margem =
+        0.008;
+
+
+    const esquerda =
+        longitude -
+        margem;
+
+    const direita =
+        longitude +
+        margem;
+
+    const baixo =
+        latitude -
+        margem;
+
+    const cima =
+        latitude +
+        margem;
+
+
+    const src =
+        "https://www.openstreetmap.org/export/embed.html" +
+
+        "?bbox=" +
+        esquerda +
+        "%2C" +
+        baixo +
+        "%2C" +
+        direita +
+        "%2C" +
+        cima +
+
+        "&layer=mapnik" +
+
+        "&marker=" +
+        latitude +
+        "%2C" +
+        longitude;
+
+
+    const frame =
+        document.getElementById(
+            "mapFrame"
+        );
+
+
+    frame.src =
+        src;
+
+
+    frame.style.display =
+        "block";
+
+
+    document.getElementById(
+        "mapPlaceholder"
+    ).style.display =
+        "none";
+
+}
+
+
+/* ============================================================
+   BATERIA
+============================================================ */
+
+function processarBateria(
+    dados
+) {
+
+    const valor =
+        dados.porcentagem;
+
+
+    if (
+        valor === null ||
+        valor === undefined ||
+        Number(valor) < 0
+    ) {
+
+        document.getElementById(
+            "bateriaValor"
+        ).innerText =
+            "USB-C";
+
+        document.getElementById(
+            "batteryPercent"
+        ).innerText =
+            "Não disponível";
+
+        document.getElementById(
+            "batteryBar"
+        ).style.width =
+            "100%";
+
+
+        document.getElementById(
+            "bateriaDescricao"
+        ).innerText =
+            dados.fonte ||
+            "Power Bank USB-C";
+
+        return;
+
+    }
+
+
+    const percentual =
+        limitar(
+            Number(valor),
+            0,
+            100
+        );
+
+
+    document.getElementById(
+        "bateriaValor"
+    ).innerText =
+        percentual.toFixed(0) +
+        "%";
+
+
+    document.getElementById(
+        "batteryPercent"
+    ).innerText =
+        percentual.toFixed(0) +
+        "%";
+
+
+    document.getElementById(
+        "batteryBar"
+    ).style.width =
+        percentual +
+        "%";
+
+}
+
+
+/* ============================================================
+   TELEMETRIA
+============================================================ */
+
+function processarTelemetria(
+    dados
+) {
+
+    if (
+        dados.coleira
+    ) {
+
+        document.getElementById(
+            "coleiraID"
+        ).innerText =
+            dados.coleira;
+
+    }
+
+
+    if (
+        dados.wifi ||
+        dados.wifi_ssid
+    ) {
+
+        document.getElementById(
+            "wifiSSID"
+        ).innerText =
+            dados.wifi ||
+            dados.wifi_ssid;
+
+    }
+
+
+    if (
+        dados.ip
+    ) {
+
+        document.getElementById(
+            "espIP"
+        ).innerText =
+            dados.ip;
+
+    }
+
+
+    if (
+        dados.wifi_rssi !==
+        undefined
+    ) {
+
+        atualizarRSSI(
+            dados.wifi_rssi
+        );
+
+    } else if (
+        dados.rssi !==
+        undefined
+    ) {
+
+        atualizarRSSI(
+            dados.rssi
+        );
+
+    }
+
+
+    if (
+        dados.tempo_ligado_s !==
+        undefined
+    ) {
+
+        document.getElementById(
+            "uptime"
+        ).innerText =
+            formatarTempo(
+                Number(
+                    dados.tempo_ligado_s
+                )
+            );
+
+    }
+
+
+    if (
+        dados.latitude !==
+        undefined &&
+        dados.longitude !==
+        undefined
+    ) {
+
+        processarLocalizacao(
+            dados
+        );
+
+    }
+
+
+    if (
+        dados.bateria_pct !==
+        undefined
+    ) {
+
+        processarBateria(
+            {
+                porcentagem:
+                    dados.bateria_pct
+            }
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   RSSI
+============================================================ */
+
+function atualizarRSSI(
+    rssi
+) {
+
+    rssi =
+        Number(rssi);
+
+
+    document.getElementById(
+        "wifiRSSI"
+    ).innerText =
+        rssi;
+
+
+    /*
+        -30 = excelente
+        -50 = ótimo
+        -60 = bom
+        -70 = regular
+        -80 = ruim
+        -90 = muito ruim
+    */
+
+
+    let qualidade =
+        2 * (
+            rssi +
+            100
+        );
+
+
+    qualidade =
+        limitar(
+            qualidade,
+            0,
+            100
+        );
+
+
+    document.getElementById(
+        "wifiPercent"
+    ).innerText =
+        Math.round(
+            qualidade
+        ) +
+        "%";
+
+
+    document.getElementById(
+        "wifiBar"
+    ).style.width =
+        qualidade +
+        "%";
+
+
+    let texto =
+        "Muito fraco";
+
+
+    if (
+        rssi >= -50
+    ) {
+
+        texto =
+            "Excelente sinal";
+
+    } else if (
+        rssi >= -60
+    ) {
+
+        texto =
+            "Ótimo sinal";
+
+    } else if (
+        rssi >= -70
+    ) {
+
+        texto =
+            "Bom sinal";
+
+    } else if (
+        rssi >= -80
+    ) {
+
+        texto =
+            "Sinal regular";
+
+    }
+
+
+    document.getElementById(
+        "wifiQualidade"
+    ).innerText =
+        texto;
+
+}
+
+
+/* ============================================================
+   ÚLTIMA ATUALIZAÇÃO
+============================================================ */
+
+function atualizarHora() {
+
+    const agora =
+        new Date();
+
+
+    document.getElementById(
+        "ultimaAtualizacao"
+    ).innerText =
+        "Atualizado às " +
+        agora.toLocaleTimeString(
+            "pt-BR"
+        );
+
+}
+
+
+/* ============================================================
+   FORMATAR TEMPO
+============================================================ */
+
+function formatarTempo(
+    segundos
+) {
+
+    const dias =
+        Math.floor(
+            segundos /
+            86400
+        );
+
+
+    const horas =
+        Math.floor(
+            (
+                segundos %
+                86400
+            ) /
+            3600
+        );
+
+
+    const minutos =
+        Math.floor(
+            (
+                segundos %
+                3600
+            ) /
+            60
+        );
+
+
+    if (
+        dias > 0
+    ) {
+
+        return (
+            dias +
+            "d " +
+            horas +
+            "h"
+        );
+
+    }
+
+
+    if (
+        horas > 0
+    ) {
+
+        return (
+            horas +
+            "h " +
+            minutos +
+            "min"
+        );
+
+    }
+
+
+    return (
+        minutos +
+        " min"
+    );
+
+}
+
+
+/* ============================================================
+   LIMITAR VALORES
+============================================================ */
+
+function limitar(
+    valor,
+    minimo,
+    maximo
+) {
+
+    return Math.min(
+        Math.max(
+            valor,
+            minimo
+        ),
+        maximo
+    );
+
+}
+
+</script>
+
+</body>
+</html>
