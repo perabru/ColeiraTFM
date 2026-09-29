@@ -1,1924 +1,2344 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta charset="UTF-8">
 
-    <title>BoviGPS - Gestão e Rastreamento Bovino</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-    <!-- MQTT.JS -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<title>BoviGPS</title>
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<!-- MQTT -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-        :root {
-            --green-950: #173326;
-            --green-900: #1d402e;
-            --green-800: #27543b;
-            --green-700: #326b48;
-            --green-600: #438457;
+<!-- LEAFLET -->
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
-            --cream: #f4f1e7;
-            --surface: #ffffff;
-            --surface-soft: #f7f7f2;
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
-            --border: #dedfd6;
+<style>
 
-            --text: #26322b;
-            --muted: #738078;
+/* ============================================================
+   CONFIGURAÇÕES
+============================================================ */
 
-            --warning: #b88629;
-            --warning-bg: #fff6df;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-            --danger: #b6463c;
-            --danger-bg: #fff0ee;
+:root {
 
-            --success: #397647;
-            --success-bg: #edf7ef;
+    --verde-900: #173e2b;
+    --verde-800: #205439;
+    --verde-700: #2e704b;
+    --verde-600: #438960;
+    --verde-500: #63a678;
 
-            --shadow: 0 4px 18px rgba(25, 48, 32, .07);
-        }
+    --creme: #f2efe6;
+    --branco: #ffffff;
 
-        body {
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
+    --texto: #243329;
+    --muted: #758078;
 
-            background:
-                #f0f0e9;
+    --linha: #dedfd8;
 
-            color:
-                var(--text);
-        }
+    --vermelho: #b84b45;
+    --vermelho-bg: #fff0ee;
 
-        button,
-        input,
-        select,
-        textarea {
-            font: inherit;
-        }
+    --amarelo: #ad7c28;
+    --amarelo-bg: #fff5dd;
 
-        button {
-            cursor: pointer;
-        }
+    --sucesso: #39794b;
+    --sucesso-bg: #ebf7ee;
 
-        /* =====================================================
-           ESTRUTURA
-        ===================================================== */
+    --sombra:
+        0 10px 30px
+        rgba(24, 56, 37, .08);
 
-        .app {
-            min-height: 100vh;
+    --radius: 18px;
+}
 
-            display: grid;
+body {
 
-            grid-template-columns:
-                240px 1fr;
-        }
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-        /* =====================================================
-           MENU LATERAL
-        ===================================================== */
+    background:
+        #f2f0e8;
 
-        aside {
-            background:
-                var(--green-950);
+    color:
+        var(--texto);
+}
 
-            color: white;
+button,
+input,
+textarea {
 
-            min-height:
-                100vh;
+    font: inherit;
+}
 
-            position:
-                sticky;
+/* ============================================================
+   ESTRUTURA
+============================================================ */
 
-            top: 0;
+.app {
 
-            height:
-                100vh;
+    min-height: 100vh;
 
-            display:
-                flex;
+    display: grid;
 
-            flex-direction:
-                column;
-        }
+    grid-template-columns:
+        250px
+        1fr;
+}
 
-        .brand {
-            padding:
-                26px 22px;
+/* ============================================================
+   MENU
+============================================================ */
 
-            border-bottom:
-                1px solid
-                rgba(255,255,255,.10);
-        }
+.sidebar {
 
-        .brand-name {
-            font-size:
-                28px;
+    background:
+        linear-gradient(
+            180deg,
+            #183d2b,
+            #112d20
+        );
 
-            font-weight:
-                800;
+    color: white;
 
-            letter-spacing:
-                -.7px;
-        }
+    min-height: 100vh;
 
-        .brand-name span {
-            color:
-                #a8ca83;
-        }
+    position: sticky;
 
-        .brand-subtitle {
-            margin-top:
-                5px;
+    top: 0;
 
-            font-size:
-                12px;
+    height: 100vh;
 
-            color:
-                rgba(255,255,255,.55);
-        }
+    display: flex;
 
-        .nav {
-            padding:
-                20px 12px;
+    flex-direction: column;
 
-            flex: 1;
-        }
+    padding:
+        24px
+        17px;
+}
 
-        .nav-button {
-            width: 100%;
+.logo {
 
-            border: 0;
+    padding:
+        4px
+        8px
+        22px;
 
-            background:
-                transparent;
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.08);
+}
 
-            color:
-                rgba(255,255,255,.68);
+.logo h1 {
 
-            padding:
-                13px 14px;
+    font-size: 30px;
 
-            border-radius:
-                7px;
+    letter-spacing:
+        -1px;
+}
 
-            text-align:
-                left;
+.logo h1 span {
 
-            margin-bottom:
-                5px;
+    color:
+        #a6d083;
+}
 
-            display:
-                flex;
+.logo p {
 
-            gap:
-                12px;
+    margin-top:
+        5px;
 
-            align-items:
-                center;
+    color:
+        rgba(255,255,255,.55);
 
-            font-size:
-                14px;
-        }
+    font-size:
+        12px;
 
-        .nav-button:hover {
-            background:
-                rgba(255,255,255,.07);
+    line-height:
+        1.5;
+}
 
-            color:
-                white;
-        }
+.menu {
 
-        .nav-button.active {
-            background:
-                var(--green-700);
+    display:
+        flex;
 
-            color:
-                white;
-        }
+    flex-direction:
+        column;
 
-        .nav-icon {
-            width:
-                20px;
+    gap:
+        7px;
 
-            text-align:
-                center;
-        }
+    padding-top:
+        20px;
+}
 
-        .nav-alert {
-            margin-left:
-                auto;
+.menu button {
 
-            min-width:
-                22px;
+    border: 0;
 
-            height:
-                22px;
+    background:
+        transparent;
 
-            border-radius:
-                20px;
+    color:
+        rgba(255,255,255,.68);
 
-            background:
-                #c95c4e;
+    padding:
+        14px;
 
-            color:
-                white;
+    border-radius:
+        11px;
 
-            display:
-                none;
+    text-align:
+        left;
 
-            align-items:
-                center;
+    cursor:
+        pointer;
 
-            justify-content:
-                center;
+    display:
+        flex;
 
-            padding:
-                0 6px;
+    align-items:
+        center;
 
-            font-size:
-                11px;
+    gap:
+        11px;
+}
 
-            font-weight:
-                bold;
-        }
+.menu button:hover {
 
-        .sidebar-footer {
-            padding:
-                18px;
+    background:
+        rgba(255,255,255,.06);
 
-            font-size:
-                11px;
+    color:
+        white;
+}
 
-            color:
-                rgba(255,255,255,.44);
+.menu button.active {
 
-            border-top:
-                1px solid
-                rgba(255,255,255,.08);
-        }
+    background:
+        #2d6948;
 
-        /* =====================================================
-           CONTEÚDO
-        ===================================================== */
+    color:
+        white;
+}
 
-        main {
-            min-width:
-                0;
-        }
+.menu-alert {
 
-        .topbar {
-            background:
-                white;
+    margin-left:
+        auto;
 
-            height:
-                76px;
+    background:
+        #cf5a51;
 
-            border-bottom:
-                1px solid
-                var(--border);
+    width:
+        23px;
 
-            padding:
-                0 32px;
+    height:
+        23px;
 
-            display:
-                flex;
+    border-radius:
+        50%;
 
-            align-items:
-                center;
+    align-items:
+        center;
 
-            justify-content:
-                space-between;
+    justify-content:
+        center;
 
-            position:
-                sticky;
+    font-size:
+        11px;
 
-            top: 0;
+    display:
+        none;
+}
 
-            z-index:
-                20;
-        }
+/* ============================================================
+   PRINCIPAL
+============================================================ */
 
-        .page-title h1 {
-            font-size:
-                20px;
+.main {
 
-            font-weight:
-                700;
-        }
+    min-width: 0;
+}
 
-        .page-title p {
-            margin-top:
-                3px;
+.topbar {
 
-            font-size:
-                12px;
+    height:
+        76px;
 
-            color:
-                var(--muted);
-        }
+    background:
+        rgba(255,255,255,.87);
 
-        .connection {
-            display:
-                flex;
+    backdrop-filter:
+        blur(12px);
 
-            align-items:
-                center;
+    display:
+        flex;
 
-            gap:
-                8px;
+    align-items:
+        center;
 
-            padding:
-                8px 11px;
+    justify-content:
+        space-between;
 
-            border:
-                1px solid
-                var(--border);
+    padding:
+        0
+        30px;
 
-            border-radius:
-                6px;
+    border-bottom:
+        1px solid
+        var(--linha);
 
-            font-size:
-                12px;
-        }
+    position:
+        sticky;
 
-        .connection-dot {
-            width:
-                8px;
+    top: 0;
 
-            height:
-                8px;
+    z-index:
+        1000;
+}
 
-            border-radius:
-                50%;
+.topbar h2 {
 
-            background:
-                #c99d38;
-        }
+    font-size:
+        20px;
+}
 
-        .connection-dot.online {
-            background:
-                #4c995b;
-        }
+.topbar p {
 
-        .connection-dot.offline {
-            background:
-                #c74f44;
-        }
+    margin-top:
+        4px;
 
-        .content {
-            padding:
-                28px 32px 45px;
-        }
+    color:
+        var(--muted);
 
-        .page {
-            display:
-                none;
-        }
+    font-size:
+        12px;
+}
 
-        .page.active {
-            display:
-                block;
-        }
+.mqtt-status {
 
-        /* =====================================================
-           CARDS
-        ===================================================== */
+    display:
+        flex;
 
-        .summary-grid {
-            display:
-                grid;
+    align-items:
+        center;
 
-            grid-template-columns:
-                repeat(4, 1fr);
+    gap:
+        8px;
 
-            gap:
-                16px;
+    border:
+        1px solid
+        var(--linha);
 
-            margin-bottom:
-                22px;
-        }
+    border-radius:
+        40px;
 
-        .summary-card {
-            background:
-                white;
+    padding:
+        9px
+        13px;
 
-            border:
-                1px solid
-                var(--border);
+    background:
+        white;
 
-            border-radius:
-                9px;
+    font-size:
+        12px;
+}
 
-            padding:
-                20px;
+.dot {
 
-            box-shadow:
-                var(--shadow);
-        }
+    width:
+        9px;
 
-        .summary-label {
-            color:
-                var(--muted);
+    height:
+        9px;
 
-            font-size:
-                12px;
+    border-radius:
+        50%;
 
-            margin-bottom:
-                11px;
-        }
+    background:
+        #d19c35;
+}
 
-        .summary-value {
-            font-size:
-                27px;
+.dot.online {
 
-            font-weight:
-                700;
+    background:
+        #4a9c5d;
+}
 
-            color:
-                var(--green-900);
-        }
+.dot.offline {
 
-        .summary-sub {
-            margin-top:
-                5px;
+    background:
+        #cf554c;
+}
 
-            font-size:
-                11px;
+.content {
 
-            color:
-                var(--muted);
-        }
+    padding:
+        28px;
+}
 
-        /* =====================================================
-           PAINEL
-        ===================================================== */
+.page {
 
-        .dashboard-grid {
-            display:
-                grid;
+    display:
+        none;
+}
 
-            grid-template-columns:
-                minmax(0, 2fr)
-                minmax(300px, 1fr);
+.page.active {
 
-            gap:
-                20px;
-        }
+    display:
+        block;
+}
 
-        .panel {
-            background:
-                white;
+/* ============================================================
+   HERO
+============================================================ */
 
-            border:
-                1px solid
-                var(--border);
+.hero {
 
-            border-radius:
-                9px;
+    background:
+        linear-gradient(
+            135deg,
+            #22573b,
+            #4a8b60
+        );
 
-            box-shadow:
-                var(--shadow);
+    color:
+        white;
 
-            overflow:
-                hidden;
-        }
+    border-radius:
+        25px;
 
-        .panel-header {
-            min-height:
-                58px;
+    margin-bottom:
+        22px;
 
-            padding:
-                16px 19px;
+    padding:
+        28px
+        32px;
 
-            display:
-                flex;
+    display:
+        grid;
 
-            align-items:
-                center;
+    grid-template-columns:
+        1.3fr
+        .7fr;
 
-            justify-content:
-                space-between;
+    align-items:
+        center;
 
-            border-bottom:
-                1px solid
-                var(--border);
-        }
+    min-height:
+        250px;
 
-        .panel-title {
-            font-size:
-                14px;
+    position:
+        relative;
 
-            font-weight:
-                700;
-        }
+    overflow:
+        hidden;
 
-        .panel-subtitle {
-            font-size:
-                11px;
+    box-shadow:
+        var(--sombra);
+}
 
-            color:
-                var(--muted);
+.hero h3 {
 
-            margin-top:
-                3px;
-        }
+    font-size:
+        31px;
 
-        .panel-body {
-            padding:
-                19px;
-        }
+    max-width:
+        650px;
 
-        /* =====================================================
-           MAPA
-        ===================================================== */
+    line-height:
+        1.15;
 
-        .map-container {
-            height:
-                455px;
+    margin-bottom:
+        12px;
+}
 
-            background:
-                #e1e4d9;
+.hero p {
 
-            position:
-                relative;
-        }
+    max-width:
+        610px;
 
-        #mapFrame {
-            display:
-                none;
+    font-size:
+        13px;
 
-            width:
-                100%;
+    line-height:
+        1.7;
 
-            height:
-                100%;
+    color:
+        rgba(255,255,255,.82);
+}
 
-            border: 0;
-        }
+.cow {
 
-        .map-empty {
-            position:
-                absolute;
+    text-align:
+        center;
 
-            inset: 0;
+    position:
+        relative;
 
-            display:
-                flex;
+    z-index:
+        2;
+}
 
-            flex-direction:
-                column;
+.cow svg {
 
-            align-items:
-                center;
+    width:
+        280px;
 
-            justify-content:
-                center;
+    max-width:
+        100%;
 
-            text-align:
-                center;
+    filter:
+        drop-shadow(
+            0 15px 15px
+            rgba(0,0,0,.12)
+        );
+}
 
-            padding:
-                20px;
+/* ============================================================
+   RESUMOS
+============================================================ */
 
-            color:
-                #6d786f;
-        }
+.summary {
 
-        .map-empty strong {
-            font-size:
-                15px;
+    display:
+        grid;
 
-            color:
-                var(--green-900);
+    grid-template-columns:
+        repeat(4,1fr);
 
-            margin-bottom:
-                6px;
-        }
+    gap:
+        16px;
 
-        .map-empty p {
-            font-size:
-                12px;
+    margin-bottom:
+        20px;
+}
 
-            max-width:
-                370px;
+.card {
 
-            line-height:
-                1.55;
-        }
+    background:
+        white;
 
-        .coordinate-grid {
-            display:
-                grid;
+    border:
+        1px solid
+        var(--linha);
 
-            grid-template-columns:
-                repeat(3, 1fr);
+    border-radius:
+        var(--radius);
 
-            border-top:
-                1px solid
-                var(--border);
-        }
+    padding:
+        20px;
 
-        .coordinate {
-            padding:
-                16px 18px;
+    box-shadow:
+        var(--sombra);
+}
 
-            border-right:
-                1px solid
-                var(--border);
-        }
+.card-label {
 
-        .coordinate:last-child {
-            border-right:
-                none;
-        }
+    color:
+        var(--muted);
 
-        .coordinate span {
-            font-size:
-                10px;
+    font-size:
+        12px;
 
-            text-transform:
-                uppercase;
+    margin-bottom:
+        11px;
+}
 
-            color:
-                var(--muted);
-        }
+.card-value {
 
-        .coordinate strong {
-            display:
-                block;
+    font-size:
+        26px;
 
-            margin-top:
-                6px;
+    font-weight:
+        bold;
 
-            font-size:
-                14px;
-        }
+    color:
+        var(--verde-900);
+}
 
-        /* =====================================================
-           ANIMAL
-        ===================================================== */
+.card-small {
 
-        .animal-header {
-            background:
-                var(--green-900);
+    color:
+        var(--muted);
 
-            color:
-                white;
+    font-size:
+        11px;
 
-            padding:
-                20px;
-        }
+    margin-top:
+        6px;
+}
 
-        .animal-header strong {
-            display:
-                block;
+/* ============================================================
+   PAINEL
+============================================================ */
 
-            font-size:
-                19px;
-        }
+.dashboard-grid {
 
-        .animal-header small {
-            display:
-                block;
+    display:
+        grid;
 
-            margin-top:
-                5px;
+    grid-template-columns:
+        1.7fr
+        .8fr;
 
-            color:
-                rgba(255,255,255,.6);
-        }
+    gap:
+        20px;
+}
 
-        .data-row {
-            display:
-                flex;
+.panel {
 
-            justify-content:
-                space-between;
+    background:
+        white;
 
-            align-items:
-                center;
+    border:
+        1px solid
+        var(--linha);
 
-            gap:
-                15px;
+    border-radius:
+        var(--radius);
 
-            min-height:
-                47px;
+    box-shadow:
+        var(--sombra);
 
-            border-bottom:
-                1px solid
-                var(--border);
+    overflow:
+        hidden;
+}
 
-            font-size:
-                12px;
-        }
+.panel-header {
 
-        .data-row:last-child {
-            border-bottom:
-                0;
-        }
+    min-height:
+        62px;
 
-        .data-row span {
-            color:
-                var(--muted);
-        }
+    padding:
+        16px
+        20px;
 
-        .data-row strong {
-            text-align:
-                right;
-        }
+    display:
+        flex;
 
-        .status-pill {
-            display:
-                inline-block;
+    justify-content:
+        space-between;
 
-            padding:
-                5px 8px;
+    align-items:
+        center;
 
-            border-radius:
-                20px;
+    border-bottom:
+        1px solid
+        var(--linha);
+}
 
-            background:
-                var(--success-bg);
+.panel-header h4 {
 
-            color:
-                var(--success);
+    font-size:
+        15px;
+}
 
-            font-size:
-                10px;
+.panel-header p {
 
-            font-weight:
-                700;
-        }
+    color:
+        var(--muted);
 
-        /* =====================================================
-           VACINAÇÃO
-        ===================================================== */
+    margin-top:
+        4px;
 
-        .vaccination-header {
-            display:
-                flex;
+    font-size:
+        11px;
+}
 
-            justify-content:
-                space-between;
+.panel-body {
 
-            align-items:
-                flex-end;
+    padding:
+        20px;
+}
 
-            gap:
-                20px;
+/* ============================================================
+   MAPA
+============================================================ */
 
-            margin-bottom:
-                20px;
-        }
+.map-wrapper {
 
-        .vaccination-header h2 {
-            font-size:
-                22px;
+    height:
+        500px;
 
-            color:
-                var(--green-900);
-        }
+    position:
+        relative;
 
-        .vaccination-header p {
-            margin-top:
-                5px;
+    background:
+        #dce5d6;
+}
 
-            color:
-                var(--muted);
+#map {
 
-            font-size:
-                12px;
+    width:
+        100%;
 
-            max-width:
-                680px;
+    height:
+        100%;
 
-            line-height:
-                1.5;
-        }
+    z-index:
+        1;
+}
 
-        .button {
-            border:
-                0;
+.map-overlay {
 
-            border-radius:
-                6px;
+    position:
+        absolute;
 
-            padding:
-                10px 14px;
+    top:
+        15px;
 
-            font-size:
-                12px;
+    right:
+        15px;
 
-            font-weight:
-                700;
-        }
+    z-index:
+        500;
 
-        .button-primary {
-            background:
-                var(--green-800);
+    display:
+        flex;
 
-            color:
-                white;
-        }
+    flex-direction:
+        column;
 
-        .button-primary:hover {
-            background:
-                var(--green-700);
-        }
+    gap:
+        8px;
+}
 
-        .button-secondary {
-            background:
-                white;
+.map-button {
 
-            color:
-                var(--green-800);
+    border:
+        1px solid
+        #d9ddd4;
 
-            border:
-                1px solid
-                var(--border);
-        }
+    background:
+        rgba(255,255,255,.95);
 
-        .button-danger {
-            background:
-                var(--danger-bg);
+    color:
+        var(--verde-900);
 
-            color:
-                var(--danger);
+    padding:
+        9px
+        12px;
 
-            border:
-                1px solid
-                #f0c9c5;
-        }
+    border-radius:
+        9px;
 
-        .alert-list {
-            display:
-                grid;
+    cursor:
+        pointer;
 
-            gap:
-                10px;
+    box-shadow:
+        0 3px 12px
+        rgba(0,0,0,.1);
 
-            margin-bottom:
-                20px;
-        }
+    font-size:
+        12px;
+}
 
-        .vaccination-alert {
-            padding:
-                14px 16px;
+.location-warning {
 
-            border-radius:
-                7px;
+    display:
+        none;
 
-            border:
-                1px solid;
+    position:
+        absolute;
 
-            display:
-                flex;
+    bottom:
+        15px;
 
-            justify-content:
-                space-between;
+    left:
+        50%;
 
-            gap:
-                20px;
+    transform:
+        translateX(-50%);
 
-            align-items:
-                center;
+    z-index:
+        500;
 
-            font-size:
-                12px;
-        }
+    background:
+        rgba(255,255,255,.95);
 
-        .vaccination-alert.danger {
-            background:
-                var(--danger-bg);
+    border:
+        1px solid
+        #e5c8a3;
 
-            border-color:
-                #edcac6;
+    color:
+        #855f2b;
 
-            color:
-                #81352e;
-        }
+    padding:
+        10px
+        14px;
 
-        .vaccination-alert.warning {
-            background:
-                var(--warning-bg);
+    border-radius:
+        8px;
 
-            border-color:
-                #ead8a7;
+    font-size:
+        12px;
 
-            color:
-                #7b5b21;
-        }
+    box-shadow:
+        var(--sombra);
+}
 
-        .vaccination-alert strong {
-            display:
-                block;
+.coordinates {
 
-            margin-bottom:
-                3px;
-        }
+    display:
+        grid;
 
-        .empty-alerts {
-            background:
-                var(--success-bg);
+    grid-template-columns:
+        repeat(3,1fr);
 
-            border:
-                1px solid
-                #cce5d0;
+    border-top:
+        1px solid
+        var(--linha);
+}
 
-            border-radius:
-                7px;
+.coordinate {
 
-            padding:
-                15px;
+    padding:
+        16px
+        18px;
 
-            font-size:
-                12px;
+    border-right:
+        1px solid
+        var(--linha);
+}
 
-            color:
-                var(--success);
-        }
+.coordinate:last-child {
 
-        /* =====================================================
-           TABELA
-        ===================================================== */
+    border-right:
+        0;
+}
 
-        .table-wrapper {
-            overflow-x:
-                auto;
-        }
+.coordinate span {
 
-        table {
-            width:
-                100%;
+    display:
+        block;
 
-            border-collapse:
-                collapse;
+    color:
+        var(--muted);
 
-            font-size:
-                12px;
-        }
+    font-size:
+        10px;
 
-        th {
-            text-align:
-                left;
+    text-transform:
+        uppercase;
 
-            padding:
-                12px;
+    margin-bottom:
+        7px;
+}
 
-            background:
-                #f2f3ed;
+.coordinate strong {
 
-            border-bottom:
-                1px solid
-                var(--border);
+    font-size:
+        14px;
+}
 
-            color:
-                #606b64;
+/* ============================================================
+   ANIMAL
+============================================================ */
 
-            font-size:
-                10px;
+.animal-head {
 
-            text-transform:
-                uppercase;
+    background:
+        var(--verde-900);
 
-            letter-spacing:
-                .4px;
-        }
+    color:
+        white;
 
-        td {
-            padding:
-                13px 12px;
+    padding:
+        22px;
+}
 
-            border-bottom:
-                1px solid
-                var(--border);
+.animal-head h4 {
 
-            vertical-align:
-                middle;
-        }
+    font-size:
+        21px;
+}
 
-        tr:last-child td {
-            border-bottom:
-                0;
-        }
+.animal-head p {
 
-        .badge {
-            display:
-                inline-block;
+    font-size:
+        11px;
 
-            border-radius:
-                20px;
+    color:
+        rgba(255,255,255,.65);
 
-            padding:
-                5px 9px;
+    margin-top:
+        5px;
+}
 
-            font-size:
-                10px;
+.info {
 
-            font-weight:
-                700;
-        }
+    min-height:
+        49px;
 
-        .badge.ok {
-            background:
-                var(--success-bg);
+    display:
+        flex;
 
-            color:
-                var(--success);
-        }
+    align-items:
+        center;
 
-        .badge.warning {
-            background:
-                var(--warning-bg);
+    justify-content:
+        space-between;
 
-            color:
-                var(--warning);
-        }
+    border-bottom:
+        1px solid
+        var(--linha);
 
-        .badge.danger {
-            background:
-                var(--danger-bg);
+    font-size:
+        12px;
 
-            color:
-                var(--danger);
-        }
+    gap:
+        15px;
+}
 
-        /* =====================================================
-           FORMULÁRIO
-        ===================================================== */
+.info:last-child {
 
-        .form-panel {
-            margin-bottom:
-                20px;
+    border-bottom:
+        0;
+}
 
-            display:
-                none;
-        }
+.info span {
 
-        .form-panel.show {
-            display:
-                block;
-        }
+    color:
+        var(--muted);
+}
 
-        .form-grid {
-            display:
-                grid;
+.info strong {
 
-            grid-template-columns:
-                repeat(2, 1fr);
+    text-align:
+        right;
 
-            gap:
-                16px;
-        }
+    word-break:
+        break-word;
+}
 
-        .form-group label {
-            display:
-                block;
+.status-pill {
 
-            font-size:
-                11px;
+    border-radius:
+        50px;
 
-            font-weight:
-                700;
+    padding:
+        5px
+        9px;
 
-            margin-bottom:
-                6px;
-        }
+    background:
+        var(--sucesso-bg);
 
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width:
-                100%;
+    color:
+        var(--sucesso);
 
-            border:
-                1px solid
-                #cfd3ca;
+    font-size:
+        10px;
+}
 
-            border-radius:
-                6px;
+/* ============================================================
+   VACINA
+============================================================ */
 
-            padding:
-                10px;
+.vaccine-header {
 
-            background:
-                white;
+    display:
+        flex;
 
-            color:
-                var(--text);
+    justify-content:
+        space-between;
 
-            outline:
-                none;
-        }
+    align-items:
+        end;
 
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            border-color:
-                var(--green-600);
-        }
+    gap:
+        20px;
 
-        .form-group.full {
-            grid-column:
-                1 / -1;
-        }
+    margin-bottom:
+        20px;
+}
 
-        .form-actions {
-            margin-top:
-                17px;
+.vaccine-header h3 {
 
-            display:
-                flex;
+    color:
+        var(--verde-900);
 
-            justify-content:
-                flex-end;
+    font-size:
+        24px;
+}
 
-            gap:
-                8px;
-        }
+.vaccine-header p {
 
-        /* =====================================================
-           LOG
-        ===================================================== */
+    max-width:
+        700px;
 
-        .log {
-            background:
-                #17261c;
+    color:
+        var(--muted);
 
-            color:
-                #b8d4be;
+    font-size:
+        12px;
 
-            height:
-                190px;
+    line-height:
+        1.6;
 
-            overflow-y:
-                auto;
+    margin-top:
+        6px;
+}
 
-            padding:
-                14px;
+.btn {
 
-            font-family:
-                Consolas,
-                monospace;
+    border:
+        0;
 
-            font-size:
-                11px;
+    border-radius:
+        10px;
 
-            line-height:
-                1.7;
-        }
+    padding:
+        10px
+        14px;
 
-        .log-time {
-            color:
-                #6f9077;
-        }
+    cursor:
+        pointer;
 
-        /* =====================================================
-           RESPONSIVO
-        ===================================================== */
+    font-size:
+        12px;
 
-        @media(max-width: 1050px) {
-            .summary-grid {
-                grid-template-columns:
-                    repeat(2,1fr);
-            }
+    font-weight:
+        bold;
+}
 
-            .dashboard-grid {
-                grid-template-columns:
-                    1fr;
-            }
-        }
+.btn-primary {
 
-        @media(max-width: 760px) {
-            .app {
-                display:
-                    block;
-            }
+    background:
+        var(--verde-700);
 
-            aside {
-                min-height:
-                    auto;
+    color:
+        white;
+}
 
-                height:
-                    auto;
+.btn-secondary {
 
-                position:
-                    relative;
-            }
+    background:
+        white;
 
-            .brand {
-                padding:
-                    18px;
-            }
+    color:
+        var(--verde-800);
 
-            .nav {
-                display:
-                    flex;
+    border:
+        1px solid
+        var(--linha);
+}
 
-                padding:
-                    8px;
+.btn-danger {
 
-                overflow-x:
-                    auto;
-            }
+    background:
+        var(--vermelho-bg);
 
-            .nav-button {
-                min-width:
-                    135px;
+    color:
+        var(--vermelho);
+}
 
-                margin:
-                    0 4px;
-            }
+.form-panel {
 
-            .sidebar-footer {
-                display:
-                    none;
-            }
+    margin-bottom:
+        20px;
 
-            .topbar {
-                padding:
-                    0 18px;
-            }
+    display:
+        none;
+}
 
-            .content {
-                padding:
-                    20px 14px 35px;
-            }
+.form-panel.show {
 
-            .summary-grid,
-            .form-grid {
-                grid-template-columns:
-                    1fr;
-            }
+    display:
+        block;
+}
 
-            .coordinate-grid {
-                grid-template-columns:
-                    1fr;
-            }
+.form-grid {
 
-            .coordinate {
-                border-right:
-                    0;
+    display:
+        grid;
 
-                border-bottom:
-                    1px solid
-                    var(--border);
-            }
+    grid-template-columns:
+        repeat(2,1fr);
 
-            .vaccination-header {
-                align-items:
-                    flex-start;
+    gap:
+        15px;
+}
 
-                flex-direction:
-                    column;
-            }
-        }
-    </style>
+.field.full {
+
+    grid-column:
+        1/-1;
+}
+
+.field label {
+
+    display:
+        block;
+
+    font-size:
+        11px;
+
+    font-weight:
+        bold;
+
+    margin-bottom:
+        6px;
+}
+
+.field input,
+.field textarea {
+
+    width:
+        100%;
+
+    border:
+        1px solid
+        #ccd2c9;
+
+    padding:
+        10px;
+
+    border-radius:
+        9px;
+
+    outline:
+        0;
+}
+
+.form-actions {
+
+    margin-top:
+        16px;
+
+    display:
+        flex;
+
+    justify-content:
+        flex-end;
+
+    gap:
+        8px;
+}
+
+.alerts {
+
+    display:
+        grid;
+
+    gap:
+        10px;
+
+    margin-bottom:
+        20px;
+}
+
+.alert {
+
+    padding:
+        14px;
+
+    border-radius:
+        12px;
+
+    border:
+        1px solid;
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    gap:
+        15px;
+
+    font-size:
+        12px;
+}
+
+.alert.warning {
+
+    background:
+        var(--amarelo-bg);
+
+    color:
+        #79581f;
+
+    border-color:
+        #e8d29d;
+}
+
+.alert.danger {
+
+    background:
+        var(--vermelho-bg);
+
+    color:
+        #883d36;
+
+    border-color:
+        #ecc9c5;
+}
+
+.alert.ok {
+
+    background:
+        var(--sucesso-bg);
+
+    color:
+        var(--sucesso);
+
+    border-color:
+        #cbe2d0;
+}
+
+.table-wrapper {
+
+    overflow-x:
+        auto;
+}
+
+table {
+
+    width:
+        100%;
+
+    border-collapse:
+        collapse;
+
+    font-size:
+        12px;
+}
+
+th {
+
+    text-align:
+        left;
+
+    padding:
+        12px;
+
+    background:
+        #f3f3ed;
+
+    color:
+        var(--muted);
+
+    font-size:
+        10px;
+
+    text-transform:
+        uppercase;
+}
+
+td {
+
+    padding:
+        13px
+        12px;
+
+    border-bottom:
+        1px solid
+        var(--linha);
+}
+
+.badge-status {
+
+    display:
+        inline-block;
+
+    padding:
+        5px
+        8px;
+
+    border-radius:
+        20px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        bold;
+}
+
+.badge-status.ok {
+
+    background:
+        var(--sucesso-bg);
+
+    color:
+        var(--sucesso);
+}
+
+.badge-status.warning {
+
+    background:
+        var(--amarelo-bg);
+
+    color:
+        var(--amarelo);
+}
+
+.badge-status.danger {
+
+    background:
+        var(--vermelho-bg);
+
+    color:
+        var(--vermelho);
+}
+
+/* ============================================================
+   MQTT
+============================================================ */
+
+.log {
+
+    background:
+        #15241b;
+
+    color:
+        #bad8c0;
+
+    padding:
+        15px;
+
+    min-height:
+        250px;
+
+    max-height:
+        500px;
+
+    overflow-y:
+        auto;
+
+    font-family:
+        Consolas,
+        monospace;
+
+    font-size:
+        11px;
+
+    line-height:
+        1.7;
+}
+
+.log-time {
+
+    color:
+        #76917d;
+}
+
+/* ============================================================
+   MARCADOR DA VAQUINHA
+============================================================ */
+
+.cow-marker {
+
+    width:
+        58px;
+
+    height:
+        58px;
+
+    border-radius:
+        50%;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    background:
+        white;
+
+    border:
+        4px solid
+        #34744f;
+
+    box-shadow:
+        0 4px 18px
+        rgba(0,0,0,.25);
+
+    font-size:
+        31px;
+}
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media(max-width:1050px) {
+
+    .summary {
+
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .dashboard-grid {
+
+        grid-template-columns:
+            1fr;
+    }
+}
+
+@media(max-width:760px) {
+
+    .app {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .sidebar {
+
+        position:
+            relative;
+
+        height:
+            auto;
+
+        min-height:
+            auto;
+    }
+
+    .menu {
+
+        flex-direction:
+            row;
+
+        overflow-x:
+            auto;
+    }
+
+    .menu button {
+
+        min-width:
+            150px;
+    }
+
+    .topbar {
+
+        position:
+            relative;
+
+        padding:
+            15px;
+
+        height:
+            auto;
+
+        flex-direction:
+            column;
+
+        align-items:
+            flex-start;
+
+        gap:
+            12px;
+    }
+
+    .content {
+
+        padding:
+            15px;
+    }
+
+    .hero {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .summary,
+    .form-grid,
+    .coordinates {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .map-wrapper {
+
+        height:
+            390px;
+    }
+}
+
+</style>
+
 </head>
 
 <body>
 
 <div class="app">
 
-    <!-- =====================================================
-         MENU
-    ====================================================== -->
+<!-- ============================================================
+     MENU
+============================================================ -->
 
-    <aside>
+<aside class="sidebar">
 
-        <div class="brand">
-            <div class="brand-name">
-                Bovi<span>GPS</span>
-            </div>
+    <div class="logo">
 
-            <div class="brand-subtitle">
-                Gestão e rastreamento bovino
-            </div>
+        <h1>
+            Bovi<span>GPS</span>
+        </h1>
+
+        <p>
+            Localização e gestão
+            inteligente do rebanho
+        </p>
+
+    </div>
+
+    <div class="menu">
+
+        <button
+            class="menu-button active"
+            data-page="dashboard"
+        >
+            ◉ Monitoramento
+        </button>
+
+        <button
+            class="menu-button"
+            data-page="vaccination"
+        >
+            ✚ Vacinação
+
+            <span
+                id="vacAlert"
+                class="menu-alert"
+            >
+                0
+            </span>
+        </button>
+
+        <button
+            class="menu-button"
+            data-page="mqtt"
+        >
+            ⌁ Comunicação
+        </button>
+
+    </div>
+
+</aside>
+
+<!-- ============================================================
+     PRINCIPAL
+============================================================ -->
+
+<main class="main">
+
+<header class="topbar">
+
+    <div>
+
+        <h2 id="pageTitle">
+            Monitoramento
+        </h2>
+
+        <p id="pageSubtitle">
+            Dados recebidos da coleira em tempo real
+        </p>
+
+    </div>
+
+    <div class="mqtt-status">
+
+        <span
+            id="mqttDot"
+            class="dot"
+        ></span>
+
+        <span id="mqttStatus">
+            Conectando ao HiveMQ...
+        </span>
+
+    </div>
+
+</header>
+
+<div class="content">
+
+<!-- ============================================================
+     DASHBOARD
+============================================================ -->
+
+<section
+    id="page-dashboard"
+    class="page active"
+>
+
+<div class="hero">
+
+    <div>
+
+        <h3>
+            Onde está o animal
+            e como está a coleira?
+        </h3>
+
+        <p>
+            O BoviGPS reúne em uma única tela
+            localização, sinal de rede,
+            alimentação e controle sanitário.
+            Os dados da ESP32 chegam através
+            do HiveMQ e são atualizados
+            automaticamente.
+        </p>
+
+    </div>
+
+    <div class="cow">
+
+        <!-- VAQUINHA SVG -->
+
+        <svg
+            viewBox="0 0 420 300"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+
+            <ellipse
+                cx="210"
+                cy="267"
+                rx="105"
+                ry="16"
+                fill="rgba(0,0,0,.12)"
+            />
+
+            <ellipse
+                cx="210"
+                cy="153"
+                rx="110"
+                ry="105"
+                fill="#fffdf7"
+            />
+
+            <path
+                d="M120 80
+                   C90 57 59 70 55 97
+                   C51 123 80 134 109 115"
+                fill="#fffdf7"
+            />
+
+            <path
+                d="M300 80
+                   C330 57 361 70 365 97
+                   C369 123 340 134 311 115"
+                fill="#fffdf7"
+            />
+
+            <ellipse
+                cx="210"
+                cy="192"
+                rx="67"
+                ry="45"
+                fill="#efb8ac"
+            />
+
+            <ellipse
+                cx="181"
+                cy="191"
+                rx="8"
+                ry="12"
+                fill="#805347"
+            />
+
+            <ellipse
+                cx="239"
+                cy="191"
+                rx="8"
+                ry="12"
+                fill="#805347"
+            />
+
+            <circle
+                cx="169"
+                cy="140"
+                r="8"
+                fill="#252525"
+            />
+
+            <circle
+                cx="250"
+                cy="140"
+                r="8"
+                fill="#252525"
+            />
+
+            <circle
+                cx="167"
+                cy="137"
+                r="2"
+                fill="white"
+            />
+
+            <circle
+                cx="248"
+                cy="137"
+                r="2"
+                fill="white"
+            />
+
+            <path
+                d="M128 103
+                   C145 82 170 77 181 93
+                   C191 108 174 125 149 124
+                   C128 123 118 115 128 103Z"
+                fill="#6d5039"
+            />
+
+            <path
+                d="M250 91
+                   C270 75 297 82 303 101
+                   C309 118 292 127 269 125
+                   C248 124 237 103 250 91Z"
+                fill="#6d5039"
+            />
+
+            <path
+                d="M194 218
+                   C203 225 218 225 227 218"
+                stroke="#995e55"
+                stroke-width="4"
+                stroke-linecap="round"
+                fill="none"
+            />
+
+            <rect
+                x="145"
+                y="65"
+                width="48"
+                height="27"
+                rx="8"
+                fill="#204c35"
+            />
+
+            <circle
+                cx="158"
+                cy="78"
+                r="5"
+                fill="#67e381"
+            />
+
+            <path
+                d="M168 78H181"
+                stroke="white"
+                stroke-width="3"
+                stroke-linecap="round"
+            />
+
+        </svg>
+
+    </div>
+
+</div>
+
+<!-- CARDS -->
+
+<div class="summary">
+
+    <div class="card">
+
+        <div class="card-label">
+            Coleira
         </div>
 
-        <div class="nav">
-
-            <button
-                class="nav-button active"
-                data-page="dashboard"
-            >
-                <span class="nav-icon">▦</span>
-                Monitoramento
-            </button>
-
-            <button
-                class="nav-button"
-                data-page="vaccination"
-            >
-                <span class="nav-icon">✚</span>
-
-                Vacinação
-
-                <span
-                    id="vaccinationAlertCount"
-                    class="nav-alert"
-                >
-                    0
-                </span>
-            </button>
-
-            <button
-                class="nav-button"
-                data-page="mqtt"
-            >
-                <span class="nav-icon">⌁</span>
-                Comunicação
-            </button>
-
+        <div
+            id="summaryStatus"
+            class="card-value"
+        >
+            --
         </div>
 
-        <div class="sidebar-footer">
-            BoviGPS<br>
-            Sistema de gestão pecuária
+        <div
+            id="lastUpdate"
+            class="card-small"
+        >
+            Aguardando comunicação
         </div>
 
-    </aside>
-
-    <!-- =====================================================
-         PRINCIPAL
-    ====================================================== -->
-
-    <main>
-
-        <header class="topbar">
-
-            <div class="page-title">
-                <h1 id="mainTitle">
-                    Monitoramento
-                </h1>
-
-                <p id="mainSubtitle">
-                    Dados da coleira BoviGPS
-                </p>
-            </div>
-
-            <div class="connection">
-
-                <div
-                    id="connectionDot"
-                    class="connection-dot"
-                ></div>
-
-                <span id="connectionText">
-                    Conectando...
-                </span>
-
-            </div>
-
-        </header>
+    </div>
 
 
-        <div class="content">
+    <div class="card">
 
-            <!-- =================================================
-                 DASHBOARD
-            ================================================== -->
+        <div class="card-label">
+            Rede Wi-Fi
+        </div>
 
-            <section
-                id="page-dashboard"
-                class="page active"
+        <div
+            id="summaryNetwork"
+            class="card-value"
+            style="font-size:22px"
+        >
+            --
+        </div>
+
+        <div
+            id="summaryRSSI"
+            class="card-small"
+        >
+            Sinal ainda não recebido
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-label">
+            Localização
+        </div>
+
+        <div
+            id="locationCard"
+            class="card-value"
+            style="font-size:20px"
+        >
+            Aguardando
+        </div>
+
+        <div class="card-small">
+            Latitude e longitude
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-label">
+            Próxima vacinação
+        </div>
+
+        <div
+            id="nextVaccine"
+            class="card-value"
+            style="font-size:20px"
+        >
+            --
+        </div>
+
+        <div
+            id="nextVaccineDate"
+            class="card-small"
+        >
+            Nenhuma cadastrada
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+<!-- MAPA -->
+
+<div class="panel">
+
+<div class="panel-header">
+
+    <div>
+
+        <h4>
+            Localização do animal
+        </h4>
+
+        <p id="mapStatus">
+            Aguardando coordenadas
+        </p>
+
+    </div>
+
+</div>
+
+<div class="map-wrapper">
+
+    <div id="map"></div>
+
+    <div class="map-overlay">
+
+        <button
+            class="map-button"
+            onclick="centralizarAnimal()"
+        >
+            Centralizar animal
+        </button>
+
+    </div>
+
+    <div
+        id="locationWarning"
+        class="location-warning"
+    >
+        Ainda não recebemos uma localização válida.
+    </div>
+
+</div>
+
+
+<div class="coordinates">
+
+    <div class="coordinate">
+
+        <span>
+            Latitude
+        </span>
+
+        <strong id="latitude">
+            --
+        </strong>
+
+    </div>
+
+
+    <div class="coordinate">
+
+        <span>
+            Longitude
+        </span>
+
+        <strong id="longitude">
+            --
+        </strong>
+
+    </div>
+
+
+    <div class="coordinate">
+
+        <span>
+            Precisão
+        </span>
+
+        <strong id="accuracy">
+            --
+        </strong>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- DADOS -->
+
+<div class="panel">
+
+    <div class="animal-head">
+
+        <h4>
+            Animal 01
+        </h4>
+
+        <p id="collarID">
+            Coleira aguardando identificação
+        </p>
+
+    </div>
+
+    <div class="panel-body">
+
+        <div class="info">
+
+            <span>Status</span>
+
+            <strong
+                id="animalStatus"
+                class="status-pill"
             >
-
-                <div class="summary-grid">
-
-                    <div class="summary-card">
-
-                        <div class="summary-label">
-                            Coleira
-                        </div>
-
-                        <div
-                            id="summaryStatus"
-                            class="summary-value"
-                        >
-                            --
-                        </div>
-
-                        <div
-                            id="lastUpdate"
-                            class="summary-sub"
-                        >
-                            Aguardando dados
-                        </div>
-
-                    </div>
-
-
-                    <div class="summary-card">
-
-                        <div class="summary-label">
-                            Sinal Wi-Fi
-                        </div>
-
-                        <div class="summary-value">
-                            <span id="summaryRSSI">
-                                --
-                            </span>
-
-                            <small
-                                style="font-size:12px"
-                            >
-                                dBm
-                            </small>
-                        </div>
-
-                        <div
-                            id="signalQuality"
-                            class="summary-sub"
-                        >
-                            Sem leitura
-                        </div>
-
-                    </div>
-
-
-                    <div class="summary-card">
-
-                        <div class="summary-label">
-                            Alimentação
-                        </div>
-
-                        <div
-                            id="summaryBattery"
-                            class="summary-value"
-                        >
-                            USB-C
-                        </div>
-
-                        <div class="summary-sub">
-                            Power bank
-                        </div>
-
-                    </div>
-
-
-                    <div class="summary-card">
-
-                        <div class="summary-label">
-                            Próxima vacinação
-                        </div>
-
-                        <div
-                            id="summaryVaccine"
-                            class="summary-value"
-                            style="font-size:20px"
-                        >
-                            --
-                        </div>
-
-                        <div
-                            id="summaryVaccineDate"
-                            class="summary-sub"
-                        >
-                            Nenhuma cadastrada
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="dashboard-grid">
-
-                    <!-- MAPA -->
-
-                    <div class="panel">
-
-                        <div class="panel-header">
-
-                            <div>
-                                <div class="panel-title">
-                                    Localização do animal
-                                </div>
-
-                                <div class="panel-subtitle">
-                                    Última posição recebida da coleira
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <div class="map-container">
-
-                            <iframe
-                                id="mapFrame"
-                            ></iframe>
-
-                            <div
-                                id="mapEmpty"
-                                class="map-empty"
-                            >
-                                <strong>
-                                    Localização não recebida
-                                </strong>
-
-                                <p>
-                                    O mapa será atualizado quando
-                                    latitude e longitude forem
-                                    publicadas pela coleira.
-                                </p>
-                            </div>
-
-                        </div>
-
-                        <div class="coordinate-grid">
-
-                            <div class="coordinate">
-                                <span>Latitude</span>
-                                <strong id="latitude">--</strong>
-                            </div>
-
-                            <div class="coordinate">
-                                <span>Longitude</span>
-                                <strong id="longitude">--</strong>
-                            </div>
-
-                            <div class="coordinate">
-                                <span>Precisão</span>
-                                <strong id="accuracy">--</strong>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- ANIMAL -->
-
-                    <div class="panel">
-
-                        <div class="animal-header">
-
-                            <strong>
-                                Animal 01
-                            </strong>
-
-                            <small id="collarID">
-                                Coleira aguardando identificação
-                            </small>
-
-                        </div>
-
-                        <div class="panel-body">
-
-                            <div class="data-row">
-                                <span>Status</span>
-
-                                <strong
-                                    id="animalStatus"
-                                    class="status-pill"
-                                >
-                                    Aguardando
-                                </strong>
-                            </div>
-
-                            <div class="data-row">
-                                <span>Rede</span>
-                                <strong id="wifiSSID">
-                                    BRUNO
-                                </strong>
-                            </div>
-
-                            <div class="data-row">
-                                <span>Endereço IP</span>
-                                <strong id="espIP">
-                                    --
-                                </strong>
-                            </div>
-
-                            <div class="data-row">
-                                <span>Sinal</span>
-                                <strong id="wifiRSSI">
-                                    --
-                                </strong>
-                            </div>
-
-                            <div class="data-row">
-                                <span>Tempo ligado</span>
-                                <strong id="uptime">
-                                    --
-                                </strong>
-                            </div>
-
-                            <div class="data-row">
-                                <span>Alimentação</span>
-                                <strong>
-                                    Power Bank USB-C
-                                </strong>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================================
-                 VACINAÇÃO
-            ================================================== -->
-
-            <section
-                id="page-vaccination"
-                class="page"
-            >
-
-                <div class="vaccination-header">
-
-                    <div>
-                        <h2>
-                            Controle de vacinação
-                        </h2>
-
-                        <p>
-                            Registre as aplicações e informe a
-                            próxima data recomendada conforme o
-                            protocolo definido pelo responsável
-                            veterinário. O BoviGPS acompanha os
-                            prazos e destaca vacinas próximas ou
-                            atrasadas.
-                        </p>
-                    </div>
-
-                    <div style="display:flex; gap:8px;">
-
-                        <button
-                            class="button button-secondary"
-                            onclick="ativarNotificacoes()"
-                        >
-                            Ativar alertas
-                        </button>
-
-                        <button
-                            class="button button-primary"
-                            onclick="toggleVaccinationForm(true)"
-                        >
-                            Nova vacinação
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <!-- FORMULÁRIO -->
-
-                <div
-                    id="vaccinationFormPanel"
-                    class="panel form-panel"
-                >
-
-                    <div class="panel-header">
-                        <div>
-                            <div class="panel-title">
-                                Registrar vacinação
-                            </div>
-
-                            <div class="panel-subtitle">
-                                Informe as datas conforme o
-                                protocolo utilizado na propriedade
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel-body">
-
-                        <form
-                            id="vaccinationForm"
-                            onsubmit="saveVaccination(event)"
-                        >
-
-                            <div class="form-grid">
-
-                                <div class="form-group">
-
-                                    <label>
-                                        Identificação do animal
-                                    </label>
-
-                                    <input
-                                        id="vaccineAnimal"
-                                        type="text"
-                                        value="Animal 01"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div class="form-group">
-
-                                    <label>
-                                        Vacina
-                                    </label>
-
-                                    <input
-                                        id="vaccineName"
-                                        type="text"
-                                        placeholder="Nome da vacina"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div class="form-group">
-
-                                    <label>
-                                        Data da aplicação
-                                    </label>
-
-                                    <input
-                                        id="vaccineLastDate"
-                                        type="date"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div class="form-group">
-
-                                    <label>
-                                        Próxima dose
-                                    </label>
-
-                                    <input
-                                        id="vaccineNextDate"
-                                        type="date"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div class="form-group full">
-
-                                    <label>
-                                        Observação
-                                    </label>
-
-                                    <textarea
-                                        id="vaccineNotes"
-                                        rows="3"
-                                        placeholder="Lote, responsável, observações..."
-                                    ></textarea>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="form-actions">
-
-                                <button
-                                    type="button"
-                                    class="button button-secondary"
-                                    onclick="toggleVaccinationForm(false)"
-                                >
-                                    Cancelar
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    class="button button-primary"
-                                >
-                                    Salvar registro
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-
-                <!-- ALERTAS -->
-
-                <div
-                    id="vaccinationAlerts"
-                    class="alert-list"
-                ></div>
-
-
-                <!-- TABELA -->
-
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-                            <div class="panel-title">
-                                Histórico e próximas doses
-                            </div>
-
-                            <div class="panel-subtitle">
-                                Registros salvos neste navegador
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                    <div class="table-wrapper">
-
-                        <table>
-
-                            <thead>
-                                <tr>
-                                    <th>Animal</th>
-                                    <th>Vacina</th>
-                                    <th>Aplicação</th>
-                                    <th>Próxima dose</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-
-                            <tbody id="vaccinationTable">
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================================
-                 MQTT
-            ================================================== -->
-
-            <section
-                id="page-mqtt"
-                class="page"
-            >
-
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-                            <div class="panel-title">
-                                Comunicação MQTT
-                            </div>
-
-                            <div class="panel-subtitle">
-                                gado/coleira01/#
-                            </div>
-                        </div>
-
-                        <strong
-                            id="messageCounter"
-                            style="font-size:11px;"
-                        >
-                            0 mensagens
-                        </strong>
-
-                    </div>
-
-                    <div
-                        id="mqttLog"
-                        class="log"
-                    >
-                        <div>
-                            <span class="log-time">
-                                [Sistema]
-                            </span>
-                            BoviGPS iniciado.
-                        </div>
-                    </div>
-
-                </div>
-
-            </section>
+                Aguardando
+            </strong>
 
         </div>
 
-    </main>
+
+        <div class="info">
+
+            <span>Rede Wi-Fi</span>
+
+            <strong id="wifiSSID">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="info">
+
+            <span>Endereço IP</span>
+
+            <strong id="espIP">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="info">
+
+            <span>Sinal</span>
+
+            <strong id="wifiRSSI">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="info">
+
+            <span>Tempo ligado</span>
+
+            <strong id="uptime">
+                --
+            </strong>
+
+        </div>
+
+
+        <div class="info">
+
+            <span>Alimentação</span>
+
+            <strong id="powerSource">
+                Power Bank USB-C
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ============================================================
+     VACINAÇÃO
+============================================================ -->
+
+<section
+    id="page-vaccination"
+    class="page"
+>
+
+<div class="vaccine-header">
+
+    <div>
+
+        <h3>
+            Vacinação
+        </h3>
+
+        <p>
+            Cadastre a aplicação e a próxima dose conforme
+            o protocolo definido pelo responsável veterinário.
+            O BoviGPS irá acompanhar os prazos.
+        </p>
+
+    </div>
+
+    <div>
+
+        <button
+            class="btn btn-secondary"
+            onclick="enableNotifications()"
+        >
+            Ativar alertas
+        </button>
+
+        <button
+            class="btn btn-primary"
+            onclick="showVaccineForm(true)"
+        >
+            Nova vacinação
+        </button>
+
+    </div>
+
+</div>
+
+
+<div
+    id="vaccineFormPanel"
+    class="panel form-panel"
+>
+
+<div class="panel-header">
+
+    <div>
+
+        <h4>
+            Registrar vacinação
+        </h4>
+
+    </div>
+
+</div>
+
+<div class="panel-body">
+
+<form
+    id="vaccineForm"
+    onsubmit="saveVaccine(event)"
+>
+
+<div class="form-grid">
+
+<div class="field">
+
+<label>
+Animal
+</label>
+
+<input
+    id="vacAnimal"
+    value="Animal 01"
+    required
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+Vacina
+</label>
+
+<input
+    id="vacName"
+    required
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+Data aplicada
+</label>
+
+<input
+    id="vacDate"
+    type="date"
+    required
+>
+
+</div>
+
+
+<div class="field">
+
+<label>
+Próxima dose
+</label>
+
+<input
+    id="vacNext"
+    type="date"
+    required
+>
+
+</div>
+
+
+<div class="field full">
+
+<label>
+Observações
+</label>
+
+<textarea
+    id="vacNotes"
+    rows="3"
+></textarea>
+
+</div>
+
+</div>
+
+
+<div class="form-actions">
+
+<button
+    type="button"
+    class="btn btn-secondary"
+    onclick="showVaccineForm(false)"
+>
+Cancelar
+</button>
+
+<button
+    type="submit"
+    class="btn btn-primary"
+>
+Salvar
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+
+<div
+    id="vaccineAlerts"
+    class="alerts"
+></div>
+
+
+<div class="panel">
+
+<div class="panel-header">
+
+    <div>
+
+        <h4>
+            Histórico de vacinação
+        </h4>
+
+    </div>
+
+</div>
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Animal
+</th>
+
+<th>
+Vacina
+</th>
+
+<th>
+Aplicação
+</th>
+
+<th>
+Próxima
+</th>
+
+<th>
+Status
+</th>
+
+<th></th>
+
+</tr>
+
+</thead>
+
+<tbody id="vaccineTable">
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ============================================================
+     MQTT
+============================================================ -->
+
+<section
+    id="page-mqtt"
+    class="page"
+>
+
+<div class="panel">
+
+<div class="panel-header">
+
+<div>
+
+<h4>
+Comunicação MQTT
+</h4>
+
+<p>
+gado/coleira01/#
+</p>
+
+</div>
+
+<strong id="messageCounter">
+0 mensagens
+</strong>
+
+</div>
+
+<div
+    id="mqttLog"
+    class="log"
+>
+
+<div>
+
+<span class="log-time">
+[Sistema]
+</span>
+
+BoviGPS iniciado.
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
 
 </div>
 
@@ -1926,145 +2346,810 @@
 <script>
 
 /* ============================================================
-   CONFIGURAÇÃO MQTT
+   HIVEMQ
 ============================================================ */
 
 const MQTT_HOST =
-    "d5010d2de7ff4182bd09c7fde4c243e5.s1.eu.hivemq.cloud";
+"d5010d2de7ff4182bd09c7fde4c243e5.s1.eu.hivemq.cloud";
 
 const MQTT_PORT =
-    8884;
+8884;
 
 const MQTT_USER =
-    "tfm";
+"tfm";
 
 const MQTT_PASSWORD =
-    "123456789";
+"123456789";
 
 const MQTT_URL =
-    `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
+`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
 
-const TOPIC_BASE =
-    "gado/coleira01/#";
-
-const TOPIC_STATUS =
-    "gado/coleira01/status";
-
-const TOPIC_LOCATION =
-    "gado/coleira01/localizacao";
-
-const TOPIC_BATTERY =
-    "gado/coleira01/bateria";
-
-const TOPIC_TELEMETRY =
-    "gado/coleira01/telemetria";
+const TOPIC =
+"gado/coleira01/#";
 
 
-let messageCount =
-    0;
+let messageCount = 0;
 
 
 /* ============================================================
-   NAVEGAÇÃO
+   MAPA
 ============================================================ */
 
-const pages = {
-    dashboard: {
-        title: "Monitoramento",
-        subtitle: "Dados da coleira BoviGPS"
-    },
-
-    vaccination: {
-        title: "Vacinação",
-        subtitle: "Controle sanitário do animal"
-    },
-
-    mqtt: {
-        title: "Comunicação",
-        subtitle: "Mensagens recebidas pelo HiveMQ"
+const map =
+L.map(
+    "map",
+    {
+        zoomControl: true
     }
-};
+)
+.setView(
+    [-15.8, -47.9],
+    4
+);
 
 
-document
-    .querySelectorAll(".nav-button")
-    .forEach(button => {
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom: 19,
 
-        button.addEventListener(
-            "click",
-            function () {
-
-                const page =
-                    this.dataset.page;
-
-                document
-                    .querySelectorAll(".nav-button")
-                    .forEach(b =>
-                        b.classList.remove("active")
-                    );
-
-                this.classList.add("active");
+        attribution:
+        "&copy; OpenStreetMap"
+    }
+)
+.addTo(map);
 
 
-                document
-                    .querySelectorAll(".page")
-                    .forEach(p =>
-                        p.classList.remove("active")
-                    );
+const cowIcon =
+L.divIcon({
+
+    html:
+    '<div class="cow-marker">🐄</div>',
+
+    className:
+    "",
+
+    iconSize:
+    [58,58],
+
+    iconAnchor:
+    [29,29]
+
+});
 
 
-                document
-                    .getElementById(
-                        "page-" + page
-                    )
-                    .classList
-                    .add("active");
+let animalMarker =
+null;
 
+let accuracyCircle =
+null;
 
-                document.getElementById(
-                    "mainTitle"
-                ).innerText =
-                    pages[page].title;
+let currentLat =
+null;
 
-
-                document.getElementById(
-                    "mainSubtitle"
-                ).innerText =
-                    pages[page].subtitle;
-
-            }
-        );
-
-    });
+let currentLng =
+null;
 
 
 /* ============================================================
-   LOG
+   FUNÇÕES DE LOCALIZAÇÃO
+============================================================ */
+
+function parseNumber(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return null;
+
+    }
+
+
+    const n =
+    Number(
+        String(value)
+        .replace(",", ".")
+    );
+
+
+    return Number.isFinite(n)
+        ? n
+        : null;
+
+}
+
+
+function extractLatitude(data) {
+
+    return parseNumber(
+
+        data.latitude ??
+
+        data.lat ??
+
+        data.location?.lat ??
+
+        data.localizacao?.latitude
+
+    );
+
+}
+
+
+function extractLongitude(data) {
+
+    return parseNumber(
+
+        data.longitude ??
+
+        data.lng ??
+
+        data.lon ??
+
+        data.location?.lng ??
+
+        data.location?.lon ??
+
+        data.localizacao?.longitude
+
+    );
+
+}
+
+
+function extractAccuracy(data) {
+
+    return parseNumber(
+
+        data.precisao_m ??
+
+        data.precisao ??
+
+        data.accuracy
+
+    );
+
+}
+
+
+function validCoordinates(
+    lat,
+    lng
+) {
+
+    if (
+        lat === null ||
+        lng === null
+    ) {
+
+        return false;
+    }
+
+
+    if (
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+    ) {
+
+        return false;
+    }
+
+
+    /*
+       Evita interpretar 0,0 como
+       localização real.
+    */
+
+    if (
+        lat === 0 &&
+        lng === 0
+    ) {
+
+        return false;
+    }
+
+
+    return true;
+
+}
+
+
+function updateLocation(data) {
+
+    const lat =
+    extractLatitude(data);
+
+    const lng =
+    extractLongitude(data);
+
+    const accuracy =
+    extractAccuracy(data);
+
+
+    if (
+        !validCoordinates(
+            lat,
+            lng
+        )
+    ) {
+
+        document.getElementById(
+            "locationCard"
+        ).innerText =
+        "Sem posição";
+
+
+        document.getElementById(
+            "mapStatus"
+        ).innerText =
+        "Coordenadas ainda não recebidas";
+
+
+        document.getElementById(
+            "locationWarning"
+        ).style.display =
+        "block";
+
+        return;
+
+    }
+
+
+    currentLat =
+    lat;
+
+    currentLng =
+    lng;
+
+
+    document.getElementById(
+        "locationWarning"
+    ).style.display =
+    "none";
+
+
+    document.getElementById(
+        "latitude"
+    ).innerText =
+    lat.toFixed(6);
+
+
+    document.getElementById(
+        "longitude"
+    ).innerText =
+    lng.toFixed(6);
+
+
+    document.getElementById(
+        "locationCard"
+    ).innerText =
+    "Localizado";
+
+
+    if (
+        accuracy !== null
+    ) {
+
+        document.getElementById(
+            "accuracy"
+        ).innerText =
+        Math.round(accuracy) +
+        " m";
+
+    }
+    else {
+
+        document.getElementById(
+            "accuracy"
+        ).innerText =
+        "--";
+
+    }
+
+
+    document.getElementById(
+        "mapStatus"
+    ).innerText =
+    "Última posição recebida agora";
+
+
+    /*
+       MARCADOR
+    */
+
+    if (
+        animalMarker === null
+    ) {
+
+        animalMarker =
+        L.marker(
+            [lat,lng],
+            {
+                icon:
+                cowIcon
+            }
+        )
+        .addTo(map);
+
+    }
+    else {
+
+        animalMarker
+        .setLatLng(
+            [lat,lng]
+        );
+
+    }
+
+
+    animalMarker
+    .bindPopup(
+        `
+        <strong>BoviGPS - Animal 01</strong><br>
+        Latitude: ${lat.toFixed(6)}<br>
+        Longitude: ${lng.toFixed(6)}<br>
+        ${
+            accuracy !== null
+            ?
+            "Precisão: " +
+            Math.round(accuracy) +
+            " m"
+            :
+            ""
+        }
+        `
+    );
+
+
+    /*
+       CÍRCULO DA PRECISÃO
+    */
+
+    if (
+        accuracy !== null &&
+        accuracy > 0
+    ) {
+
+        if (
+            accuracyCircle === null
+        ) {
+
+            accuracyCircle =
+            L.circle(
+                [lat,lng],
+                {
+                    radius:
+                    accuracy,
+
+                    color:
+                    "#34744f",
+
+                    weight:
+                    2,
+
+                    fillColor:
+                    "#4e9368",
+
+                    fillOpacity:
+                    .12
+                }
+            )
+            .addTo(map);
+
+        }
+        else {
+
+            accuracyCircle
+            .setLatLng(
+                [lat,lng]
+            );
+
+            accuracyCircle
+            .setRadius(
+                accuracy
+            );
+
+        }
+
+    }
+
+
+    /*
+       CENTRALIZAR
+    */
+
+    map.flyTo(
+        [lat,lng],
+        accuracy &&
+        accuracy > 500
+        ?
+        13
+        :
+        16,
+        {
+            duration:
+            1.3
+        }
+    );
+
+
+    /*
+       SALVAR ÚLTIMA POSIÇÃO
+    */
+
+    localStorage.setItem(
+        "bovigps_last_location",
+        JSON.stringify({
+            latitude:
+            lat,
+
+            longitude:
+            lng,
+
+            accuracy:
+            accuracy
+        })
+    );
+
+}
+
+
+function centralizarAnimal() {
+
+    if (
+        currentLat === null ||
+        currentLng === null
+    ) {
+
+        alert(
+            "Ainda não há uma localização válida recebida da coleira."
+        );
+
+        return;
+    }
+
+
+    map.flyTo(
+        [
+            currentLat,
+            currentLng
+        ],
+        16,
+        {
+            duration:
+            1
+        }
+    );
+
+
+    if (
+        animalMarker
+    ) {
+
+        animalMarker.openPopup();
+
+    }
+
+}
+
+
+/* ============================================================
+   EXTRAIR REDE
+============================================================ */
+
+function extractNetwork(data) {
+
+    const network =
+
+    data.wifi ??
+
+    data.wifi_ssid ??
+
+    data.ssid ??
+
+    data.rede ??
+
+    data.network;
+
+
+    if (
+        network === null ||
+        network === undefined ||
+        network === ""
+    ) {
+
+        return null;
+
+    }
+
+
+    return String(network);
+
+}
+
+
+/* ============================================================
+   ATUALIZAR REDE
+============================================================ */
+
+function updateNetwork(data) {
+
+    const network =
+    extractNetwork(data);
+
+
+    if (
+        network
+    ) {
+
+        document.getElementById(
+            "wifiSSID"
+        ).innerText =
+        network;
+
+
+        document.getElementById(
+            "summaryNetwork"
+        ).innerText =
+        network;
+
+    }
+
+
+    const rssi =
+    parseNumber(
+
+        data.rssi ??
+
+        data.wifi_rssi ??
+
+        data.signal
+
+    );
+
+
+    if (
+        rssi !== null
+    ) {
+
+        document.getElementById(
+            "wifiRSSI"
+        ).innerText =
+        rssi +
+        " dBm";
+
+
+        let quality =
+        "Muito fraco";
+
+
+        if (
+            rssi >= -50
+        ) {
+
+            quality =
+            "Excelente";
+
+        }
+        else if (
+            rssi >= -60
+        ) {
+
+            quality =
+            "Muito bom";
+
+        }
+        else if (
+            rssi >= -70
+        ) {
+
+            quality =
+            "Bom";
+
+        }
+        else if (
+            rssi >= -80
+        ) {
+
+            quality =
+            "Regular";
+
+        }
+
+
+        document.getElementById(
+            "summaryRSSI"
+        ).innerText =
+        rssi +
+        " dBm • " +
+        quality;
+
+    }
+
+}
+
+
+/* ============================================================
+   TELEMETRIA
+============================================================ */
+
+function processTelemetry(data) {
+
+    /*
+       REDE
+    */
+
+    updateNetwork(data);
+
+
+    /*
+       LOCALIZAÇÃO
+
+       Agora tentamos atualizar a localização
+       em QUALQUER mensagem que contenha
+       coordenadas.
+    */
+
+    const lat =
+    extractLatitude(data);
+
+    const lng =
+    extractLongitude(data);
+
+
+    if (
+        lat !== null ||
+        lng !== null
+    ) {
+
+        updateLocation(data);
+
+    }
+
+
+    /*
+       ID DA COLEIRA
+    */
+
+    if (
+        data.coleira
+    ) {
+
+        document.getElementById(
+            "collarID"
+        ).innerText =
+        data.coleira;
+
+    }
+
+
+    /*
+       IP
+    */
+
+    if (
+        data.ip
+    ) {
+
+        document.getElementById(
+            "espIP"
+        ).innerText =
+        data.ip;
+
+    }
+
+
+    /*
+       TEMPO LIGADO
+    */
+
+    if (
+        data.tempo_ligado_s !==
+        undefined
+    ) {
+
+        document.getElementById(
+            "uptime"
+        ).innerText =
+        formatTime(
+            Number(
+                data.tempo_ligado_s
+            )
+        );
+
+    }
+
+
+    /*
+       ALIMENTAÇÃO
+    */
+
+    if (
+        data.alimentacao
+    ) {
+
+        document.getElementById(
+            "powerSource"
+        ).innerText =
+        data.alimentacao;
+
+    }
+
+
+    /*
+       BATERIA
+    */
+
+    const battery =
+    parseNumber(
+
+        data.porcentagem ??
+
+        data.bateria_pct ??
+
+        data.bateria
+
+    );
+
+
+    if (
+        battery !== null &&
+        battery >= 0
+    ) {
+
+        document.getElementById(
+            "powerSource"
+        ).innerText =
+        Math.round(battery) +
+        "%";
+
+    }
+
+}
+
+
+/* ============================================================
+   MQTT LOG
 ============================================================ */
 
 function addLog(text) {
 
     const log =
-        document.getElementById(
-            "mqttLog"
-        );
+    document.getElementById(
+        "mqttLog"
+    );
+
 
     const time =
-        new Date()
-        .toLocaleTimeString(
-            "pt-BR"
-        );
+    new Date()
+    .toLocaleTimeString(
+        "pt-BR"
+    );
+
 
     const line =
-        document.createElement("div");
+    document.createElement(
+        "div"
+    );
+
 
     line.innerHTML =
-        `<span class="log-time">[${time}]</span> ${text}`;
+    `<span class="log-time">[${time}]</span> ${escapeHTML(text)}`;
 
-    log.appendChild(line);
+
+    log.appendChild(
+        line
+    );
+
 
     log.scrollTop =
-        log.scrollHeight;
+    log.scrollHeight;
+
 }
 
 
@@ -2073,34 +3158,36 @@ function addLog(text) {
 ============================================================ */
 
 const client =
-    mqtt.connect(
-        MQTT_URL,
-        {
-            username:
-                MQTT_USER,
+mqtt.connect(
+    MQTT_URL,
+    {
 
-            password:
-                MQTT_PASSWORD,
+        username:
+        MQTT_USER,
 
-            clientId:
-                "BoviGPS_" +
-                Math.random()
-                    .toString(16)
-                    .slice(2),
+        password:
+        MQTT_PASSWORD,
 
-            clean:
-                true,
+        clientId:
+        "BoviGPS_WEB_" +
+        Math.random()
+        .toString(16)
+        .substring(2),
 
-            reconnectPeriod:
-                3000,
+        clean:
+        true,
 
-            connectTimeout:
-                10000,
+        connectTimeout:
+        10000,
 
-            keepalive:
-                60
-        }
-    );
+        reconnectPeriod:
+        3000,
+
+        keepalive:
+        60
+
+    }
+);
 
 
 client.on(
@@ -2108,32 +3195,43 @@ client.on(
     () => {
 
         document.getElementById(
-            "connectionText"
-        ).innerText =
-            "HiveMQ conectado";
+            "mqttDot"
+        ).className =
+        "dot online";
+
 
         document.getElementById(
-            "connectionDot"
-        ).className =
-            "connection-dot online";
+            "mqttStatus"
+        ).innerText =
+        "HiveMQ conectado";
+
 
         addLog(
-            "Conectado ao HiveMQ."
+            "Conectado ao HiveMQ"
         );
 
-        client.subscribe(
-            TOPIC_BASE,
-            err => {
 
-                if (err) {
+        client.subscribe(
+            TOPIC,
+            error => {
+
+                if (
+                    error
+                ) {
+
                     addLog(
-                        "Erro ao assinar os tópicos."
+                        "Erro ao assinar " +
+                        TOPIC
                     );
-                } else {
+
+                }
+                else {
+
                     addLog(
                         "Inscrito em " +
-                        TOPIC_BASE
+                        TOPIC
                     );
+
                 }
 
             }
@@ -2148,14 +3246,15 @@ client.on(
     () => {
 
         document.getElementById(
-            "connectionText"
-        ).innerText =
-            "HiveMQ desconectado";
+            "mqttDot"
+        ).className =
+        "dot offline";
+
 
         document.getElementById(
-            "connectionDot"
-        ).className =
-            "connection-dot offline";
+            "mqttStatus"
+        ).innerText =
+        "HiveMQ desconectado";
 
     }
 );
@@ -2166,9 +3265,15 @@ client.on(
     () => {
 
         document.getElementById(
-            "connectionText"
+            "mqttDot"
+        ).className =
+        "dot";
+
+
+        document.getElementById(
+            "mqttStatus"
         ).innerText =
-            "Reconectando...";
+        "Reconectando...";
 
     }
 );
@@ -2187,20 +3292,30 @@ client.on(
 );
 
 
+/* ============================================================
+   RECEBER MENSAGEM
+============================================================ */
+
 client.on(
     "message",
-    (topic, message) => {
+    (
+        topic,
+        message
+    ) => {
 
         const text =
-            message.toString();
+        message.toString();
+
 
         messageCount++;
+
 
         document.getElementById(
             "messageCounter"
         ).innerText =
-            messageCount +
-            " mensagens";
+        messageCount +
+        " mensagens";
+
 
         addLog(
             topic +
@@ -2208,412 +3323,102 @@ client.on(
             text
         );
 
-        updateLastMessage();
 
+        document.getElementById(
+            "lastUpdate"
+        ).innerText =
+        "Atualizado às " +
+        new Date()
+        .toLocaleTimeString(
+            "pt-BR"
+        );
+
+
+        /*
+           STATUS
+        */
 
         if (
-            topic ===
-            TOPIC_STATUS
+            topic.endsWith(
+                "/status"
+            )
         ) {
 
-            updateStatus(text);
+            const online =
+            text
+            .trim()
+            .toLowerCase() ===
+            "online";
+
+
+            document.getElementById(
+                "summaryStatus"
+            ).innerText =
+            online
+            ?
+            "Online"
+            :
+            "Offline";
+
+
+            const status =
+            document.getElementById(
+                "animalStatus"
+            );
+
+
+            status.innerText =
+            online
+            ?
+            "Online"
+            :
+            "Offline";
+
 
             return;
+
         }
 
+
+        /*
+           JSON
+        */
 
         let data;
 
+
         try {
+
             data =
-                JSON.parse(text);
-        } catch {
+            JSON.parse(
+                text
+            );
+
+        }
+        catch {
+
             return;
+
         }
 
 
-        if (
-            topic ===
-            TOPIC_LOCATION
-        ) {
-            updateLocation(data);
-        }
+        /*
+           IMPORTANTE:
 
+           Agora não dependemos mais apenas
+           do nome exato do tópico.
 
-        if (
-            topic ===
-            TOPIC_BATTERY
-        ) {
-            updateBattery(data);
-        }
+           Se qualquer mensagem possuir:
+           wifi, latitude, longitude, etc.,
+           ela será processada.
+        */
 
-
-        if (
-            topic ===
-            TOPIC_TELEMETRY
-        ) {
-            updateTelemetry(data);
-        }
+        processTelemetry(
+            data
+        );
 
     }
 );
-
-
-/* ============================================================
-   STATUS
-============================================================ */
-
-function updateStatus(status) {
-
-    const online =
-        status
-        .toLowerCase() ===
-        "online";
-
-    document.getElementById(
-        "summaryStatus"
-    ).innerText =
-        online
-        ? "Online"
-        : "Offline";
-
-
-    const element =
-        document.getElementById(
-            "animalStatus"
-        );
-
-    element.innerText =
-        online
-        ? "Online"
-        : "Offline";
-
-
-    element.style.background =
-        online
-        ? "#edf7ef"
-        : "#fff0ee";
-
-    element.style.color =
-        online
-        ? "#397647"
-        : "#b6463c";
-
-}
-
-
-/* ============================================================
-   LOCALIZAÇÃO
-============================================================ */
-
-function updateLocation(data) {
-
-    if (
-        data.latitude === undefined ||
-        data.longitude === undefined
-    ) {
-        return;
-    }
-
-    const latitude =
-        Number(data.latitude);
-
-    const longitude =
-        Number(data.longitude);
-
-
-    document.getElementById(
-        "latitude"
-    ).innerText =
-        latitude.toFixed(6);
-
-
-    document.getElementById(
-        "longitude"
-    ).innerText =
-        longitude.toFixed(6);
-
-
-    if (
-        data.precisao_m !==
-        undefined
-    ) {
-
-        document.getElementById(
-            "accuracy"
-        ).innerText =
-            Math.round(
-                Number(
-                    data.precisao_m
-                )
-            ) +
-            " m";
-
-    }
-
-
-    if (
-        data.rssi !==
-        undefined
-    ) {
-
-        updateSignal(
-            data.rssi
-        );
-
-    }
-
-
-    if (
-        data.coleira
-    ) {
-
-        document.getElementById(
-            "collarID"
-        ).innerText =
-            data.coleira;
-
-    }
-
-
-    updateMap(
-        latitude,
-        longitude
-    );
-
-}
-
-
-/* ============================================================
-   MAPA
-============================================================ */
-
-function updateMap(
-    latitude,
-    longitude
-) {
-
-    const distance =
-        0.008;
-
-    const bbox =
-        [
-            longitude - distance,
-            latitude - distance,
-            longitude + distance,
-            latitude + distance
-        ]
-        .join(",");
-
-
-    const url =
-        `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${latitude}%2C${longitude}`;
-
-
-    const frame =
-        document.getElementById(
-            "mapFrame"
-        );
-
-    frame.src =
-        url;
-
-    frame.style.display =
-        "block";
-
-
-    document.getElementById(
-        "mapEmpty"
-    ).style.display =
-        "none";
-
-}
-
-
-/* ============================================================
-   BATERIA
-============================================================ */
-
-function updateBattery(data) {
-
-    if (
-        data.porcentagem === null ||
-        data.porcentagem === undefined ||
-        Number(data.porcentagem) < 0
-    ) {
-
-        document.getElementById(
-            "summaryBattery"
-        ).innerText =
-            "USB-C";
-
-        return;
-    }
-
-
-    document.getElementById(
-        "summaryBattery"
-    ).innerText =
-        Math.round(
-            Number(
-                data.porcentagem
-            )
-        ) +
-        "%";
-
-}
-
-
-/* ============================================================
-   TELEMETRIA
-============================================================ */
-
-function updateTelemetry(data) {
-
-    if (data.coleira) {
-
-        document.getElementById(
-            "collarID"
-        ).innerText =
-            data.coleira;
-
-    }
-
-
-    if (
-        data.wifi ||
-        data.wifi_ssid
-    ) {
-
-        document.getElementById(
-            "wifiSSID"
-        ).innerText =
-            data.wifi ||
-            data.wifi_ssid;
-
-    }
-
-
-    if (data.ip) {
-
-        document.getElementById(
-            "espIP"
-        ).innerText =
-            data.ip;
-
-    }
-
-
-    if (
-        data.rssi !== undefined
-    ) {
-
-        updateSignal(
-            data.rssi
-        );
-
-    } else if (
-        data.wifi_rssi !==
-        undefined
-    ) {
-
-        updateSignal(
-            data.wifi_rssi
-        );
-
-    }
-
-
-    if (
-        data.tempo_ligado_s !==
-        undefined
-    ) {
-
-        document.getElementById(
-            "uptime"
-        ).innerText =
-            formatTime(
-                Number(
-                    data.tempo_ligado_s
-                )
-            );
-
-    }
-
-
-    if (
-        data.latitude !== undefined &&
-        data.longitude !== undefined
-    ) {
-
-        updateLocation(data);
-
-    }
-
-
-    if (
-        data.bateria_pct !==
-        undefined
-    ) {
-
-        updateBattery({
-            porcentagem:
-                data.bateria_pct
-        });
-
-    }
-
-}
-
-
-/* ============================================================
-   SINAL
-============================================================ */
-
-function updateSignal(rssi) {
-
-    rssi =
-        Number(rssi);
-
-
-    document.getElementById(
-        "summaryRSSI"
-    ).innerText =
-        rssi;
-
-
-    document.getElementById(
-        "wifiRSSI"
-    ).innerText =
-        rssi +
-        " dBm";
-
-
-    let quality =
-        "Muito fraco";
-
-
-    if (rssi >= -50) {
-        quality =
-            "Excelente";
-    } else if (rssi >= -60) {
-        quality =
-            "Muito bom";
-    } else if (rssi >= -70) {
-        quality =
-            "Bom";
-    } else if (rssi >= -80) {
-        quality =
-            "Regular";
-    }
-
-
-    document.getElementById(
-        "signalQuality"
-    ).innerText =
-        quality;
-
-}
 
 
 /* ============================================================
@@ -2623,43 +3428,59 @@ function updateSignal(rssi) {
 function formatTime(seconds) {
 
     const days =
-        Math.floor(
-            seconds /
-            86400
-        );
+    Math.floor(
+        seconds /
+        86400
+    );
+
 
     const hours =
-        Math.floor(
+    Math.floor(
+        (
             seconds %
-            86400 /
-            3600
-        );
+            86400
+        ) /
+        3600
+    );
+
 
     const minutes =
-        Math.floor(
+    Math.floor(
+        (
             seconds %
-            3600 /
-            60
-        );
+            3600
+        ) /
+        60
+    );
 
 
-    if (days > 0) {
+    if (
+        days > 0
+    ) {
+
         return (
             days +
             "d " +
             hours +
             "h"
         );
+
     }
 
-    if (hours > 0) {
+
+    if (
+        hours > 0
+    ) {
+
         return (
             hours +
             "h " +
             minutes +
             "min"
         );
+
     }
+
 
     return (
         minutes +
@@ -2669,39 +3490,160 @@ function formatTime(seconds) {
 }
 
 
-function updateLastMessage() {
+/* ============================================================
+   NAVEGAÇÃO
+============================================================ */
 
-    document.getElementById(
-        "lastUpdate"
-    ).innerText =
-        "Atualizado às " +
-        new Date()
-            .toLocaleTimeString(
-                "pt-BR"
-            );
+const pageInfo = {
 
-}
+    dashboard: {
+
+        title:
+        "Monitoramento",
+
+        subtitle:
+        "Dados recebidos da coleira em tempo real"
+
+    },
+
+    vaccination: {
+
+        title:
+        "Vacinação",
+
+        subtitle:
+        "Controle sanitário do animal"
+
+    },
+
+    mqtt: {
+
+        title:
+        "Comunicação",
+
+        subtitle:
+        "Mensagens recebidas pelo HiveMQ"
+
+    }
+
+};
+
+
+document
+.querySelectorAll(
+    ".menu-button"
+)
+.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                const page =
+                this.dataset.page;
+
+
+                document
+                .querySelectorAll(
+                    ".menu-button"
+                )
+                .forEach(
+                    b =>
+                    b.classList.remove(
+                        "active"
+                    )
+                );
+
+
+                this.classList.add(
+                    "active"
+                );
+
+
+                document
+                .querySelectorAll(
+                    ".page"
+                )
+                .forEach(
+                    p =>
+                    p.classList.remove(
+                        "active"
+                    )
+                );
+
+
+                document
+                .getElementById(
+                    "page-" +
+                    page
+                )
+                .classList
+                .add(
+                    "active"
+                );
+
+
+                document.getElementById(
+                    "pageTitle"
+                ).innerText =
+                pageInfo[page].title;
+
+
+                document.getElementById(
+                    "pageSubtitle"
+                ).innerText =
+                pageInfo[page].subtitle;
+
+
+                /*
+                   Corrige tamanho do Leaflet
+                   quando volta para aba mapa.
+                */
+
+                if (
+                    page ===
+                    "dashboard"
+                ) {
+
+                    setTimeout(
+                        () => {
+
+                            map.invalidateSize();
+
+                        },
+                        150
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
 
 
 /* ============================================================
    VACINAÇÃO
 ============================================================ */
 
-const STORAGE_KEY =
-    "bovigps_vaccinations";
+const STORAGE =
+"bovigps_vaccines";
 
 
-function getVaccinations() {
+function getVaccines() {
 
     try {
 
         return JSON.parse(
             localStorage.getItem(
-                STORAGE_KEY
+                STORAGE
             )
         ) || [];
 
-    } catch {
+    }
+    catch {
 
         return [];
 
@@ -2710,26 +3652,26 @@ function getVaccinations() {
 }
 
 
-function storeVaccinations(
-    vaccinations
-) {
+function setVaccines(data) {
 
     localStorage.setItem(
-        STORAGE_KEY,
+        STORAGE,
         JSON.stringify(
-            vaccinations
+            data
         )
     );
 
 }
 
 
-function toggleVaccinationForm(show) {
+function showVaccineForm(show) {
 
-    document.getElementById(
-        "vaccinationFormPanel"
+    document
+    .getElementById(
+        "vaccineFormPanel"
     )
-    .classList.toggle(
+    .classList
+    .toggle(
         "show",
         show
     );
@@ -2737,7 +3679,7 @@ function toggleVaccinationForm(show) {
 }
 
 
-function saveVaccination(event) {
+function saveVaccine(event) {
 
     event.preventDefault();
 
@@ -2745,558 +3687,516 @@ function saveVaccination(event) {
     const item = {
 
         id:
-            Date.now(),
+        Date.now(),
 
         animal:
-            document.getElementById(
-                "vaccineAnimal"
-            ).value.trim(),
+        document.getElementById(
+            "vacAnimal"
+        ).value,
 
         vaccine:
-            document.getElementById(
-                "vaccineName"
-            ).value.trim(),
+        document.getElementById(
+            "vacName"
+        ).value,
 
-        lastDate:
-            document.getElementById(
-                "vaccineLastDate"
-            ).value,
+        date:
+        document.getElementById(
+            "vacDate"
+        ).value,
 
-        nextDate:
-            document.getElementById(
-                "vaccineNextDate"
-            ).value,
+        next:
+        document.getElementById(
+            "vacNext"
+        ).value,
 
         notes:
-            document.getElementById(
-                "vaccineNotes"
-            ).value.trim()
+        document.getElementById(
+            "vacNotes"
+        ).value
 
     };
 
 
-    const vaccinations =
-        getVaccinations();
+    const data =
+    getVaccines();
 
-    vaccinations.push(item);
 
-    storeVaccinations(
-        vaccinations
+    data.push(
+        item
+    );
+
+
+    setVaccines(
+        data
     );
 
 
     document.getElementById(
-        "vaccinationForm"
+        "vaccineForm"
     ).reset();
 
 
     document.getElementById(
-        "vaccineAnimal"
+        "vacAnimal"
     ).value =
-        "Animal 01";
+    "Animal 01";
 
 
-    toggleVaccinationForm(false);
-
-    renderVaccinations();
-
-}
-
-
-function deleteVaccination(id) {
-
-    const confirmed =
-        confirm(
-            "Deseja excluir este registro?"
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    const vaccinations =
-        getVaccinations()
-        .filter(
-            item =>
-                item.id !== id
-        );
-
-
-    storeVaccinations(
-        vaccinations
+    showVaccineForm(
+        false
     );
 
-    renderVaccinations();
+
+    renderVaccines();
 
 }
 
 
-/* ============================================================
-   STATUS DA VACINA
-============================================================ */
-
-function vaccinationStatus(
-    date
-) {
+function vaccineStatus(date) {
 
     const today =
-        new Date();
+    new Date();
+
 
     today.setHours(
-        0,0,0,0
+        0,
+        0,
+        0,
+        0
     );
 
 
-    const target =
-        new Date(
-            date +
-            "T00:00:00"
-        );
+    const next =
+    new Date(
+        date +
+        "T00:00:00"
+    );
 
 
-    const difference =
-        Math.ceil(
-            (
-                target -
-                today
-            ) /
-            86400000
-        );
+    const days =
+    Math.ceil(
+        (
+            next -
+            today
+        ) /
+        86400000
+    );
 
 
     if (
-        difference < 0
+        days < 0
     ) {
 
         return {
+
             type:
-                "danger",
+            "danger",
 
             label:
-                "Atrasada",
+            "Atrasada",
 
             days:
-                difference
+            days
+
         };
 
     }
 
 
     if (
-        difference <= 30
+        days <= 30
     ) {
 
         return {
+
             type:
-                "warning",
+            "warning",
 
             label:
-                "Próxima",
+            "Próxima",
 
             days:
-                difference
+            days
+
         };
 
     }
 
 
     return {
+
         type:
-            "ok",
+        "ok",
 
         label:
-            "Em dia",
+        "Em dia",
 
         days:
-            difference
+        days
+
     };
 
 }
 
 
-/* ============================================================
-   FORMATAR DATA
-============================================================ */
+function formatDate(value) {
 
-function formatDate(date) {
+    if (
+        !value
+    ) {
 
-    if (!date) {
         return "--";
+
     }
 
 
-    const parts =
-        date.split("-");
+    const p =
+    value.split("-");
 
 
     return (
-        parts[2] +
+        p[2] +
         "/" +
-        parts[1] +
+        p[1] +
         "/" +
-        parts[0]
+        p[0]
     );
 
 }
 
 
-/* ============================================================
-   RENDER VACINAS
-============================================================ */
+function deleteVaccine(id) {
 
-function renderVaccinations() {
+    if (
+        !confirm(
+            "Excluir este registro?"
+        )
+    ) {
 
-    const vaccinations =
-        getVaccinations();
+        return;
+
+    }
+
+
+    const data =
+    getVaccines()
+    .filter(
+        item =>
+        item.id !== id
+    );
+
+
+    setVaccines(
+        data
+    );
+
+
+    renderVaccines();
+
+}
+
+
+function renderVaccines() {
+
+    const data =
+    getVaccines()
+    .sort(
+        (
+            a,
+            b
+        ) =>
+        new Date(a.next) -
+        new Date(b.next)
+    );
 
 
     const table =
-        document.getElementById(
-            "vaccinationTable"
-        );
+    document.getElementById(
+        "vaccineTable"
+    );
 
 
     const alerts =
-        document.getElementById(
-            "vaccinationAlerts"
-        );
+    document.getElementById(
+        "vaccineAlerts"
+    );
 
 
     table.innerHTML =
-        "";
+    "";
+
 
     alerts.innerHTML =
-        "";
+    "";
 
 
     let alertCount =
-        0;
+    0;
 
 
-    vaccinations
-        .sort(
-            (a,b) =>
-                new Date(a.nextDate) -
-                new Date(b.nextDate)
-        )
-        .forEach(item => {
+    if (
+        data.length === 0
+    ) {
+
+        table.innerHTML =
+        `
+        <tr>
+            <td
+                colspan="6"
+                style="
+                    text-align:center;
+                    padding:30px;
+                    color:#758078;
+                "
+            >
+                Nenhuma vacinação cadastrada.
+            </td>
+        </tr>
+        `;
+
+    }
+
+
+    data.forEach(
+        item => {
 
             const status =
-                vaccinationStatus(
-                    item.nextDate
-                );
+            vaccineStatus(
+                item.next
+            );
 
 
-            const tr =
-                document.createElement(
-                    "tr"
-                );
+            const row =
+            document.createElement(
+                "tr"
+            );
 
 
-            tr.innerHTML = `
-                <td>${escapeHTML(item.animal)}</td>
+            row.innerHTML =
+            `
+            <td>
+                ${escapeHTML(item.animal)}
+            </td>
 
-                <td>
-                    <strong>
-                        ${escapeHTML(item.vaccine)}
-                    </strong>
-                </td>
+            <td>
+                <strong>
+                    ${escapeHTML(item.vaccine)}
+                </strong>
+            </td>
 
-                <td>
-                    ${formatDate(item.lastDate)}
-                </td>
+            <td>
+                ${formatDate(item.date)}
+            </td>
 
-                <td>
-                    ${formatDate(item.nextDate)}
-                </td>
+            <td>
+                ${formatDate(item.next)}
+            </td>
 
-                <td>
-                    <span class="badge ${status.type}">
-                        ${status.label}
-                    </span>
-                </td>
+            <td>
+                <span class="badge-status ${status.type}">
+                    ${status.label}
+                </span>
+            </td>
 
-                <td>
-                    <button
-                        class="button button-danger"
-                        onclick="deleteVaccination(${item.id})"
-                    >
-                        Excluir
-                    </button>
-                </td>
+            <td>
+                <button
+                    class="btn btn-danger"
+                    onclick="deleteVaccine(${item.id})"
+                >
+                    Excluir
+                </button>
+            </td>
             `;
 
 
-            table.appendChild(tr);
+            table.appendChild(
+                row
+            );
 
 
             if (
+                status.type ===
+                "warning" ||
                 status.type ===
                 "danger"
             ) {
 
                 alertCount++;
 
-                addVaccinationAlert(
-                    alerts,
-                    item,
-                    status,
-                    "danger"
+
+                const alert =
+                document.createElement(
+                    "div"
+                );
+
+
+                alert.className =
+                "alert " +
+                status.type;
+
+
+                let text;
+
+
+                if (
+                    status.days < 0
+                ) {
+
+                    text =
+                    "Atrasada há " +
+                    Math.abs(status.days) +
+                    " dia(s)";
+
+                }
+                else if (
+                    status.days === 0
+                ) {
+
+                    text =
+                    "Dose prevista para hoje";
+
+                }
+                else {
+
+                    text =
+                    "Próxima dose em " +
+                    status.days +
+                    " dia(s)";
+
+                }
+
+
+                alert.innerHTML =
+                `
+                <div>
+                    <strong>
+                        ${escapeHTML(item.vaccine)}
+                    </strong>
+
+                    <br>
+
+                    ${escapeHTML(item.animal)}
+                    —
+                    ${text}
+                </div>
+
+                <strong>
+                    ${formatDate(item.next)}
+                </strong>
+                `;
+
+
+                alerts.appendChild(
+                    alert
                 );
 
             }
 
-
-            if (
-                status.type ===
-                "warning"
-            ) {
-
-                alertCount++;
-
-                addVaccinationAlert(
-                    alerts,
-                    item,
-                    status,
-                    "warning"
-                );
-
-            }
-
-        });
-
-
-    if (
-        vaccinations.length === 0
-    ) {
-
-        table.innerHTML = `
-            <tr>
-                <td colspan="6"
-                    style="
-                        padding:30px;
-                        text-align:center;
-                        color:#738078;
-                    "
-                >
-                    Nenhum registro de vacinação cadastrado.
-                </td>
-            </tr>
-        `;
-
-    }
+        }
+    );
 
 
     if (
         alertCount === 0
     ) {
 
-        alerts.innerHTML = `
-            <div class="empty-alerts">
-                Nenhuma vacinação próxima ou atrasada.
-            </div>
+        alerts.innerHTML =
+        `
+        <div class="alert ok">
+            Nenhuma vacinação próxima ou atrasada.
+        </div>
         `;
 
     }
 
 
-    updateVaccinationCounter(
-        alertCount
+    const badge =
+    document.getElementById(
+        "vacAlert"
     );
-
-
-    updateNextVaccination(
-        vaccinations
-    );
-
-
-    notifyVaccinations(
-        vaccinations
-    );
-
-}
-
-
-/* ============================================================
-   ALERTAS
-============================================================ */
-
-function addVaccinationAlert(
-    container,
-    item,
-    status,
-    type
-) {
-
-    const alert =
-        document.createElement(
-            "div"
-        );
-
-    alert.className =
-        "vaccination-alert " +
-        type;
-
-
-    let message;
 
 
     if (
-        type ===
-        "danger"
+        alertCount > 0
     ) {
-
-        message =
-            `A próxima dose está atrasada há ${Math.abs(status.days)} dia(s).`;
-
-    } else if (
-        status.days === 0
-    ) {
-
-        message =
-            "A próxima dose está prevista para hoje.";
-
-    } else {
-
-        message =
-            `A próxima dose está prevista em ${status.days} dia(s).`;
-
-    }
-
-
-    alert.innerHTML = `
-        <div>
-            <strong>
-                ${escapeHTML(item.vaccine)} — ${escapeHTML(item.animal)}
-            </strong>
-
-            ${message}
-        </div>
-
-        <div>
-            ${formatDate(item.nextDate)}
-        </div>
-    `;
-
-
-    container.appendChild(
-        alert
-    );
-
-}
-
-
-/* ============================================================
-   CONTADOR
-============================================================ */
-
-function updateVaccinationCounter(
-    count
-) {
-
-    const badge =
-        document.getElementById(
-            "vaccinationAlertCount"
-        );
-
-
-    if (count > 0) {
 
         badge.style.display =
-            "flex";
+        "flex";
 
         badge.innerText =
-            count;
+        alertCount;
 
-    } else {
+    }
+    else {
 
         badge.style.display =
-            "none";
+        "none";
 
     }
 
-}
-
-
-/* ============================================================
-   PRÓXIMA VACINA
-============================================================ */
-
-function updateNextVaccination(
-    vaccinations
-) {
 
     if (
-        vaccinations.length === 0
+        data.length > 0
     ) {
 
         document.getElementById(
-            "summaryVaccine"
+            "nextVaccine"
         ).innerText =
-            "--";
+        data[0].vaccine;
+
 
         document.getElementById(
-            "summaryVaccineDate"
+            "nextVaccineDate"
         ).innerText =
-            "Nenhuma cadastrada";
-
-        return;
+        formatDate(
+            data[0].next
+        );
 
     }
+    else {
+
+        document.getElementById(
+            "nextVaccine"
+        ).innerText =
+        "--";
 
 
-    const sorted =
-        [...vaccinations]
-        .sort(
-            (a,b) =>
-                new Date(a.nextDate) -
-                new Date(b.nextDate)
-        );
+        document.getElementById(
+            "nextVaccineDate"
+        ).innerText =
+        "Nenhuma cadastrada";
 
-
-    const next =
-        sorted[0];
-
-
-    document.getElementById(
-        "summaryVaccine"
-    ).innerText =
-        next.vaccine;
-
-
-    document.getElementById(
-        "summaryVaccineDate"
-    ).innerText =
-        formatDate(
-            next.nextDate
-        );
+    }
 
 }
 
 
 /* ============================================================
-   NOTIFICAÇÕES DO NAVEGADOR
+   NOTIFICAÇÃO
 ============================================================ */
 
-async function ativarNotificacoes() {
+async function enableNotifications() {
 
     if (
-        !("Notification" in window)
+        !(
+            "Notification"
+            in
+            window
+        )
     ) {
 
         alert(
-            "Este navegador não oferece suporte a notificações."
+            "Seu navegador não suporta notificações."
         );
 
         return;
+
     }
 
 
     const permission =
-        await Notification
-        .requestPermission();
+    await Notification
+    .requestPermission();
 
 
     if (
@@ -3308,101 +4208,30 @@ async function ativarNotificacoes() {
             "BoviGPS",
             {
                 body:
-                    "Alertas de vacinação ativados."
+                "Alertas ativados."
             }
         );
 
     }
-
-}
-
-
-function notifyVaccinations(
-    vaccinations
-) {
-
-    if (
-        !("Notification" in window)
-    ) {
-        return;
-    }
-
-
-    if (
-        Notification.permission !==
-        "granted"
-    ) {
-        return;
-    }
-
-
-    vaccinations.forEach(
-        item => {
-
-            const status =
-                vaccinationStatus(
-                    item.nextDate
-                );
-
-
-            if (
-                status.type ===
-                "danger"
-            ) {
-
-                const key =
-                    "notification_" +
-                    item.id +
-                    "_" +
-                    new Date()
-                    .toISOString()
-                    .slice(0,10);
-
-
-                if (
-                    localStorage
-                    .getItem(key)
-                ) {
-                    return;
-                }
-
-
-                new Notification(
-                    "BoviGPS - Vacinação atrasada",
-                    {
-                        body:
-                            `${item.animal}: ${item.vaccine} deveria ter sido aplicada em ${formatDate(item.nextDate)}.`
-                    }
-                );
-
-
-                localStorage
-                    .setItem(
-                        key,
-                        "1"
-                    );
-
-            }
-
-        }
-    );
 
 }
 
 
 /* ============================================================
-   SEGURANÇA HTML
+   HTML SEGURO
 ============================================================ */
 
 function escapeHTML(text) {
 
     const div =
-        document.createElement(
-            "div"
-        );
+    document.createElement(
+        "div"
+    );
+
 
     div.textContent =
-        text;
+    text;
+
 
     return div.innerHTML;
 
@@ -3410,12 +4239,59 @@ function escapeHTML(text) {
 
 
 /* ============================================================
-   INICIAR
+   RECUPERAR ÚLTIMA LOCALIZAÇÃO
 ============================================================ */
 
-renderVaccinations();
+try {
+
+    const saved =
+    JSON.parse(
+        localStorage.getItem(
+            "bovigps_last_location"
+        )
+    );
+
+
+    if (
+        saved &&
+        validCoordinates(
+            saved.latitude,
+            saved.longitude
+        )
+    ) {
+
+        updateLocation({
+
+            latitude:
+            saved.latitude,
+
+            longitude:
+            saved.longitude,
+
+            precisao_m:
+            saved.accuracy
+
+        });
+
+        document.getElementById(
+            "mapStatus"
+        ).innerText =
+        "Última posição salva";
+
+    }
+
+}
+catch {}
+
+
+/* ============================================================
+   INICIAR VACINAS
+============================================================ */
+
+renderVaccines();
 
 </script>
 
 </body>
+
 </html>
