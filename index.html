@@ -1,2344 +1,2128 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<meta charset="UTF-8">
+    <title>BoviGPS</title>
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+    <!-- MQTT.JS -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-<title>BoviGPS</title>
+    <!-- LEAFLET -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
 
-<!-- MQTT -->
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+    <style>
 
-<!-- LEAFLET -->
-<link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green-dark: #173b2a;
+            --green: #265b3e;
+            --green-mid: #3f7f56;
+            --green-light: #6ba77b;
 
-<script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+            --cream: #f1eee5;
+            --white: #ffffff;
 
-<style>
+            --text: #243128;
+            --muted: #748078;
+            --line: #dedfd8;
 
-/* ============================================================
-   CONFIGURAÇÕES
-============================================================ */
+            --success: #3e8050;
+            --success-bg: #edf7ef;
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+            --warning: #b58028;
+            --warning-bg: #fff6df;
 
-:root {
+            --danger: #b54e48;
+            --danger-bg: #fff0ee;
 
-    --verde-900: #173e2b;
-    --verde-800: #205439;
-    --verde-700: #2e704b;
-    --verde-600: #438960;
-    --verde-500: #63a678;
+            --shadow:
+                0 12px 34px rgba(28, 52, 36, .08);
 
-    --creme: #f2efe6;
-    --branco: #ffffff;
+            --radius: 20px;
+        }
 
-    --texto: #243329;
-    --muted: #758078;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--cream);
+            color: var(--text);
+        }
 
-    --linha: #dedfd8;
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
 
-    --vermelho: #b84b45;
-    --vermelho-bg: #fff0ee;
+        button {
+            cursor: pointer;
+        }
 
-    --amarelo: #ad7c28;
-    --amarelo-bg: #fff5dd;
+        /* =====================================================
+           APP
+        ===================================================== */
 
-    --sucesso: #39794b;
-    --sucesso-bg: #ebf7ee;
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+        }
 
-    --sombra:
-        0 10px 30px
-        rgba(24, 56, 37, .08);
+        /* =====================================================
+           SIDEBAR
+        ===================================================== */
 
-    --radius: 18px;
-}
+        .sidebar {
+            min-height: 100vh;
+            height: 100vh;
 
-body {
+            position: sticky;
+            top: 0;
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+            background:
+                linear-gradient(
+                    180deg,
+                    #173b2a 0%,
+                    #10281d 100%
+                );
 
-    background:
-        #f2f0e8;
+            color: white;
 
-    color:
-        var(--texto);
-}
+            padding: 24px 16px;
 
-button,
-input,
-textarea {
+            display: flex;
+            flex-direction: column;
+        }
 
-    font: inherit;
-}
+        .brand {
+            padding: 4px 8px 22px;
 
-/* ============================================================
-   ESTRUTURA
-============================================================ */
+            border-bottom:
+                1px solid rgba(255,255,255,.08);
+        }
 
-.app {
+        .brand-name {
+            font-size: 31px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
 
-    min-height: 100vh;
+        .brand-name span {
+            color: #aed48c;
+        }
 
-    display: grid;
+        .brand p {
+            margin-top: 5px;
 
-    grid-template-columns:
-        250px
-        1fr;
-}
+            color:
+                rgba(255,255,255,.57);
 
-/* ============================================================
-   MENU
-============================================================ */
+            font-size: 12px;
+            line-height: 1.5;
+        }
 
-.sidebar {
+        .menu {
+            padding-top: 20px;
 
-    background:
-        linear-gradient(
-            180deg,
-            #183d2b,
-            #112d20
-        );
+            display: flex;
+            flex-direction: column;
 
-    color: white;
+            gap: 7px;
+        }
 
-    min-height: 100vh;
+        .menu-button {
+            border: 0;
 
-    position: sticky;
+            width: 100%;
 
-    top: 0;
+            padding: 14px;
 
-    height: 100vh;
+            border-radius: 11px;
 
-    display: flex;
+            background: transparent;
 
-    flex-direction: column;
+            color:
+                rgba(255,255,255,.68);
 
-    padding:
-        24px
-        17px;
-}
+            text-align: left;
 
-.logo {
+            display: flex;
+            align-items: center;
 
-    padding:
-        4px
-        8px
-        22px;
+            gap: 11px;
 
-    border-bottom:
-        1px solid
-        rgba(255,255,255,.08);
-}
+            transition: .2s;
+        }
 
-.logo h1 {
+        .menu-button:hover {
+            background:
+                rgba(255,255,255,.06);
 
-    font-size: 30px;
+            color: white;
+        }
 
-    letter-spacing:
-        -1px;
-}
+        .menu-button.active {
+            background: #2c6847;
+            color: white;
+        }
 
-.logo h1 span {
+        .menu-count {
+            margin-left: auto;
 
-    color:
-        #a6d083;
-}
+            min-width: 23px;
+            height: 23px;
 
-.logo p {
+            padding: 0 6px;
 
-    margin-top:
-        5px;
+            border-radius: 30px;
 
-    color:
-        rgba(255,255,255,.55);
+            background: #ce5b52;
 
-    font-size:
-        12px;
+            color: white;
 
-    line-height:
-        1.5;
-}
+            display: none;
+            align-items: center;
+            justify-content: center;
 
-.menu {
+            font-size: 11px;
+            font-weight: bold;
+        }
 
-    display:
-        flex;
+        .sidebar-footer {
+            margin-top: auto;
 
-    flex-direction:
-        column;
+            padding: 12px 8px 0;
 
-    gap:
-        7px;
+            border-top:
+                1px solid rgba(255,255,255,.08);
 
-    padding-top:
-        20px;
-}
+            font-size: 11px;
 
-.menu button {
+            color:
+                rgba(255,255,255,.45);
 
-    border: 0;
+            line-height: 1.6;
+        }
 
-    background:
-        transparent;
+        /* =====================================================
+           MAIN
+        ===================================================== */
 
-    color:
-        rgba(255,255,255,.68);
+        .main {
+            min-width: 0;
+        }
 
-    padding:
-        14px;
+        .topbar {
+            min-height: 76px;
 
-    border-radius:
-        11px;
+            padding: 15px 30px;
 
-    text-align:
-        left;
+            background:
+                rgba(255,255,255,.89);
 
-    cursor:
-        pointer;
+            backdrop-filter:
+                blur(10px);
 
-    display:
-        flex;
+            border-bottom:
+                1px solid var(--line);
 
-    align-items:
-        center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
-    gap:
-        11px;
-}
+            position: sticky;
+            top: 0;
 
-.menu button:hover {
+            z-index: 1000;
+        }
 
-    background:
-        rgba(255,255,255,.06);
+        .topbar h2 {
+            font-size: 21px;
+        }
 
-    color:
-        white;
-}
+        .topbar p {
+            margin-top: 4px;
 
-.menu button.active {
+            font-size: 12px;
 
-    background:
-        #2d6948;
+            color: var(--muted);
+        }
 
-    color:
-        white;
-}
+        .broker-status {
+            padding: 9px 14px;
 
-.menu-alert {
+            background: white;
 
-    margin-left:
-        auto;
+            border:
+                1px solid var(--line);
 
-    background:
-        #cf5a51;
+            border-radius: 40px;
 
-    width:
-        23px;
+            display: flex;
+            align-items: center;
 
-    height:
-        23px;
+            gap: 8px;
 
-    border-radius:
-        50%;
+            font-size: 12px;
+        }
 
-    align-items:
-        center;
+        .dot {
+            width: 9px;
+            height: 9px;
 
-    justify-content:
-        center;
+            border-radius: 50%;
 
-    font-size:
-        11px;
+            background: #ce9b38;
+        }
 
-    display:
-        none;
-}
+        .dot.online {
+            background: #50a162;
 
-/* ============================================================
-   PRINCIPAL
-============================================================ */
+            box-shadow:
+                0 0 0 4px
+                rgba(80,161,98,.12);
+        }
 
-.main {
+        .dot.offline {
+            background: #cb5951;
 
-    min-width: 0;
-}
+            box-shadow:
+                0 0 0 4px
+                rgba(203,89,81,.12);
+        }
 
-.topbar {
+        .content {
+            padding: 28px;
+        }
 
-    height:
-        76px;
+        .page {
+            display: none;
+        }
 
-    background:
-        rgba(255,255,255,.87);
+        .page.active {
+            display: block;
+        }
 
-    backdrop-filter:
-        blur(12px);
+        /* =====================================================
+           HERO
+        ===================================================== */
 
-    display:
-        flex;
+        .hero {
+            min-height: 260px;
 
-    align-items:
-        center;
+            margin-bottom: 22px;
 
-    justify-content:
-        space-between;
+            padding: 30px 34px;
 
-    padding:
-        0
-        30px;
+            border-radius: 28px;
 
-    border-bottom:
-        1px solid
-        var(--linha);
+            background:
+                linear-gradient(
+                    135deg,
+                    #22583b,
+                    #4e9265
+                );
 
-    position:
-        sticky;
+            color: white;
 
-    top: 0;
+            display: grid;
 
-    z-index:
-        1000;
-}
+            grid-template-columns:
+                1.25fr .75fr;
 
-.topbar h2 {
+            align-items: center;
 
-    font-size:
-        20px;
-}
+            gap: 20px;
 
-.topbar p {
+            overflow: hidden;
 
-    margin-top:
-        4px;
+            position: relative;
 
-    color:
-        var(--muted);
+            box-shadow:
+                var(--shadow);
+        }
 
-    font-size:
-        12px;
-}
+        .hero::before {
+            content: "";
 
-.mqtt-status {
+            width: 300px;
+            height: 300px;
 
-    display:
-        flex;
+            border-radius: 50%;
 
-    align-items:
-        center;
+            position: absolute;
 
-    gap:
-        8px;
+            right: -100px;
+            top: -100px;
 
-    border:
-        1px solid
-        var(--linha);
+            background:
+                rgba(255,255,255,.08);
+        }
 
-    border-radius:
-        40px;
+        .hero-text {
+            position: relative;
+            z-index: 2;
+        }
 
-    padding:
-        9px
-        13px;
+        .hero-tag {
+            margin-bottom: 10px;
 
-    background:
-        white;
+            color: #d9efcd;
 
-    font-size:
-        12px;
-}
+            font-size: 11px;
 
-.dot {
+            text-transform: uppercase;
 
-    width:
-        9px;
+            letter-spacing: 1.4px;
+        }
 
-    height:
-        9px;
+        .hero h3 {
+            max-width: 640px;
 
-    border-radius:
-        50%;
+            margin-bottom: 12px;
 
-    background:
-        #d19c35;
-}
+            font-size: 34px;
 
-.dot.online {
+            line-height: 1.15;
+        }
 
-    background:
-        #4a9c5d;
-}
+        .hero p {
+            max-width: 620px;
 
-.dot.offline {
+            color:
+                rgba(255,255,255,.84);
 
-    background:
-        #cf554c;
-}
+            font-size: 13px;
 
-.content {
+            line-height: 1.7;
+        }
 
-    padding:
-        28px;
-}
+        /* =====================================================
+           COW
+        ===================================================== */
 
-.page {
+        .cow-area {
+            position: relative;
+            z-index: 2;
 
-    display:
-        none;
-}
+            display: flex;
+            justify-content: center;
+        }
 
-.page.active {
+        .cow-svg {
+            width: 310px;
+            max-width: 100%;
 
-    display:
-        block;
-}
+            filter:
+                drop-shadow(
+                    0 18px 20px
+                    rgba(0,0,0,.14)
+                );
+        }
 
-/* ============================================================
-   HERO
-============================================================ */
+        /* =====================================================
+           CARDS
+        ===================================================== */
 
-.hero {
+        .cards {
+            display: grid;
 
-    background:
-        linear-gradient(
-            135deg,
-            #22573b,
-            #4a8b60
-        );
+            grid-template-columns:
+                repeat(4, 1fr);
 
-    color:
-        white;
+            gap: 16px;
 
-    border-radius:
-        25px;
+            margin-bottom: 22px;
+        }
 
-    margin-bottom:
-        22px;
+        .card {
+            padding: 20px;
 
-    padding:
-        28px
-        32px;
+            border:
+                1px solid var(--line);
 
-    display:
-        grid;
+            border-radius:
+                var(--radius);
 
-    grid-template-columns:
-        1.3fr
-        .7fr;
+            background:
+                white;
 
-    align-items:
-        center;
+            box-shadow:
+                var(--shadow);
+        }
 
-    min-height:
-        250px;
+        .card-label {
+            margin-bottom: 11px;
 
-    position:
-        relative;
+            font-size: 12px;
 
-    overflow:
-        hidden;
+            color: var(--muted);
+        }
 
-    box-shadow:
-        var(--sombra);
-}
+        .card-value {
+            font-size: 27px;
+            font-weight: 800;
 
-.hero h3 {
+            color:
+                var(--green-dark);
 
-    font-size:
-        31px;
+            line-height: 1.1;
+        }
 
-    max-width:
-        650px;
+        .card-small {
+            margin-top: 7px;
 
-    line-height:
-        1.15;
+            font-size: 11px;
 
-    margin-bottom:
-        12px;
-}
+            color: var(--muted);
+        }
 
-.hero p {
+        /* =====================================================
+           DASHBOARD GRID
+        ===================================================== */
 
-    max-width:
-        610px;
+        .dashboard-grid {
+            display: grid;
 
-    font-size:
-        13px;
+            grid-template-columns:
+                minmax(0,1.7fr)
+                minmax(280px,.8fr);
 
-    line-height:
-        1.7;
+            gap: 20px;
+        }
 
-    color:
-        rgba(255,255,255,.82);
-}
+        .panel {
+            overflow: hidden;
 
-.cow {
+            border:
+                1px solid var(--line);
 
-    text-align:
-        center;
+            border-radius:
+                var(--radius);
 
-    position:
-        relative;
+            background:
+                white;
 
-    z-index:
-        2;
-}
+            box-shadow:
+                var(--shadow);
+        }
 
-.cow svg {
+        .panel-header {
+            min-height: 62px;
 
-    width:
-        280px;
+            padding: 16px 20px;
 
-    max-width:
-        100%;
+            border-bottom:
+                1px solid var(--line);
 
-    filter:
-        drop-shadow(
-            0 15px 15px
-            rgba(0,0,0,.12)
-        );
-}
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
-/* ============================================================
-   RESUMOS
-============================================================ */
+            gap: 14px;
+        }
 
-.summary {
+        .panel-header h4 {
+            font-size: 15px;
+        }
 
-    display:
-        grid;
+        .panel-header p {
+            margin-top: 4px;
 
-    grid-template-columns:
-        repeat(4,1fr);
+            font-size: 11px;
 
-    gap:
-        16px;
+            color: var(--muted);
+        }
 
-    margin-bottom:
-        20px;
-}
+        .panel-body {
+            padding: 20px;
+        }
 
-.card {
+        /* =====================================================
+           MAP
+        ===================================================== */
 
-    background:
-        white;
+        .map-wrapper {
+            height: 500px;
 
-    border:
-        1px solid
-        var(--linha);
+            position: relative;
 
-    border-radius:
-        var(--radius);
+            background: #dae4d5;
+        }
 
-    padding:
-        20px;
+        #map {
+            width: 100%;
+            height: 100%;
+        }
 
-    box-shadow:
-        var(--sombra);
-}
+        .map-actions {
+            position: absolute;
 
-.card-label {
+            right: 15px;
+            top: 15px;
 
-    color:
-        var(--muted);
+            z-index: 500;
 
-    font-size:
-        12px;
+            display: flex;
+            flex-direction: column;
 
-    margin-bottom:
-        11px;
-}
+            gap: 8px;
+        }
 
-.card-value {
+        .map-button {
+            min-height: 40px;
 
-    font-size:
-        26px;
+            padding:
+                8px 12px;
 
-    font-weight:
-        bold;
+            border:
+                1px solid #d7ddd3;
 
-    color:
-        var(--verde-900);
-}
+            border-radius: 9px;
 
-.card-small {
+            background:
+                rgba(255,255,255,.95);
 
-    color:
-        var(--muted);
+            color:
+                var(--green-dark);
 
-    font-size:
-        11px;
+            box-shadow:
+                0 3px 12px
+                rgba(0,0,0,.10);
 
-    margin-top:
-        6px;
-}
+            font-size: 12px;
+        }
 
-/* ============================================================
-   PAINEL
-============================================================ */
+        .map-button:hover {
+            background: white;
+        }
 
-.dashboard-grid {
+        .location-chip {
+            display: flex;
+            align-items: center;
 
-    display:
-        grid;
+            gap: 6px;
 
-    grid-template-columns:
-        1.7fr
-        .8fr;
+            color:
+                var(--green-mid);
 
-    gap:
-        20px;
-}
+            font-size: 11px;
+        }
 
-.panel {
+        .location-chip span {
+            width: 7px;
+            height: 7px;
 
-    background:
-        white;
+            border-radius: 50%;
 
-    border:
-        1px solid
-        var(--linha);
+            background:
+                var(--green-light);
+        }
 
-    border-radius:
-        var(--radius);
+        .coords {
+            display: grid;
 
-    box-shadow:
-        var(--sombra);
+            grid-template-columns:
+                repeat(3,1fr);
 
-    overflow:
-        hidden;
-}
+            border-top:
+                1px solid var(--line);
+        }
 
-.panel-header {
+        .coord {
+            padding: 16px 18px;
 
-    min-height:
-        62px;
+            border-right:
+                1px solid var(--line);
+        }
 
-    padding:
-        16px
-        20px;
+        .coord:last-child {
+            border-right: 0;
+        }
 
-    display:
-        flex;
+        .coord span {
+            display: block;
 
-    justify-content:
-        space-between;
+            margin-bottom: 7px;
 
-    align-items:
-        center;
+            color:
+                var(--muted);
 
-    border-bottom:
-        1px solid
-        var(--linha);
-}
+            font-size: 10px;
 
-.panel-header h4 {
+            text-transform:
+                uppercase;
+        }
 
-    font-size:
-        15px;
-}
+        .coord strong {
+            font-size: 14px;
+        }
 
-.panel-header p {
+        /* =====================================================
+           MARKER
+        ===================================================== */
 
-    color:
-        var(--muted);
+        .cow-marker {
+            width: 62px;
+            height: 62px;
 
-    margin-top:
-        4px;
+            border:
+                4px solid var(--green-mid);
 
-    font-size:
-        11px;
-}
+            border-radius: 50%;
 
-.panel-body {
+            background:
+                white;
 
-    padding:
-        20px;
-}
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-/* ============================================================
-   MAPA
-============================================================ */
+            font-size: 33px;
 
-.map-wrapper {
+            box-shadow:
+                0 7px 20px
+                rgba(0,0,0,.24);
+        }
 
-    height:
-        500px;
+        /* =====================================================
+           ANIMAL INFO
+        ===================================================== */
 
-    position:
-        relative;
+        .animal-head {
+            padding: 22px;
 
-    background:
-        #dce5d6;
-}
+            background:
+                linear-gradient(
+                    135deg,
+                    #1d4932,
+                    #316c4a
+                );
 
-#map {
+            color: white;
+        }
 
-    width:
-        100%;
+        .animal-head h4 {
+            font-size: 22px;
+        }
 
-    height:
-        100%;
+        .animal-head p {
+            margin-top: 5px;
 
-    z-index:
-        1;
-}
+            color:
+                rgba(255,255,255,.65);
 
-.map-overlay {
+            font-size: 11px;
+        }
 
-    position:
-        absolute;
+        .info-row {
+            min-height: 51px;
 
-    top:
-        15px;
+            border-bottom:
+                1px solid var(--line);
 
-    right:
-        15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
 
-    z-index:
-        500;
+            gap: 15px;
 
-    display:
-        flex;
+            font-size: 12px;
+        }
 
-    flex-direction:
-        column;
+        .info-row:last-child {
+            border-bottom: 0;
+        }
 
-    gap:
-        8px;
-}
+        .info-row span {
+            color: var(--muted);
+        }
 
-.map-button {
+        .info-row strong {
+            text-align: right;
+            word-break: break-word;
+        }
 
-    border:
-        1px solid
-        #d9ddd4;
+        .status-pill {
+            padding: 5px 9px;
 
-    background:
-        rgba(255,255,255,.95);
+            border-radius: 50px;
 
-    color:
-        var(--verde-900);
+            background:
+                var(--success-bg);
 
-    padding:
-        9px
-        12px;
+            color:
+                var(--success);
 
-    border-radius:
-        9px;
+            font-size: 10px;
+        }
 
-    cursor:
-        pointer;
+        /* =====================================================
+           VACCINATION
+        ===================================================== */
 
-    box-shadow:
-        0 3px 12px
-        rgba(0,0,0,.1);
+        .section-title {
+            margin-bottom: 20px;
 
-    font-size:
-        12px;
-}
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
 
-.location-warning {
+            gap: 20px;
+        }
 
-    display:
-        none;
+        .section-title h3 {
+            font-size: 24px;
 
-    position:
-        absolute;
+            color:
+                var(--green-dark);
+        }
 
-    bottom:
-        15px;
+        .section-title p {
+            max-width: 720px;
 
-    left:
-        50%;
+            margin-top: 6px;
 
-    transform:
-        translateX(-50%);
+            color:
+                var(--muted);
 
-    z-index:
-        500;
+            font-size: 12px;
 
-    background:
-        rgba(255,255,255,.95);
+            line-height: 1.6;
+        }
 
-    border:
-        1px solid
-        #e5c8a3;
+        .actions {
+            display: flex;
+            gap: 8px;
 
-    color:
-        #855f2b;
+            flex-wrap: wrap;
+        }
 
-    padding:
-        10px
-        14px;
+        .button {
+            min-height: 40px;
 
-    border-radius:
-        8px;
+            padding:
+                9px 14px;
 
-    font-size:
-        12px;
+            border: 0;
 
-    box-shadow:
-        var(--sombra);
-}
+            border-radius: 10px;
 
-.coordinates {
+            font-size: 12px;
 
-    display:
-        grid;
+            font-weight: bold;
+        }
 
-    grid-template-columns:
-        repeat(3,1fr);
+        .button-primary {
+            background:
+                var(--green-mid);
 
-    border-top:
-        1px solid
-        var(--linha);
-}
+            color: white;
+        }
 
-.coordinate {
+        .button-secondary {
+            border:
+                1px solid var(--line);
 
-    padding:
-        16px
-        18px;
+            background:
+                white;
 
-    border-right:
-        1px solid
-        var(--linha);
-}
+            color:
+                var(--green);
+        }
 
-.coordinate:last-child {
+        .button-danger {
+            border:
+                1px solid #edc9c5;
 
-    border-right:
-        0;
-}
+            background:
+                var(--danger-bg);
 
-.coordinate span {
+            color:
+                var(--danger);
+        }
 
-    display:
-        block;
+        .form-panel {
+            display: none;
 
-    color:
-        var(--muted);
+            margin-bottom: 20px;
+        }
 
-    font-size:
-        10px;
+        .form-panel.show {
+            display: block;
+        }
 
-    text-transform:
-        uppercase;
+        .form-grid {
+            display: grid;
 
-    margin-bottom:
-        7px;
-}
+            grid-template-columns:
+                repeat(2,1fr);
 
-.coordinate strong {
+            gap: 15px;
+        }
 
-    font-size:
-        14px;
-}
+        .field label {
+            display: block;
 
-/* ============================================================
-   ANIMAL
-============================================================ */
+            margin-bottom: 6px;
 
-.animal-head {
+            font-size: 11px;
 
-    background:
-        var(--verde-900);
+            font-weight: bold;
+        }
 
-    color:
-        white;
+        .field input,
+        .field textarea {
+            width: 100%;
 
-    padding:
-        22px;
-}
+            padding: 11px;
 
-.animal-head h4 {
+            border:
+                1px solid #ccd3ca;
 
-    font-size:
-        21px;
-}
+            border-radius: 9px;
 
-.animal-head p {
+            outline: none;
+        }
 
-    font-size:
-        11px;
+        .field input:focus,
+        .field textarea:focus {
+            border-color:
+                var(--green-light);
+        }
 
-    color:
-        rgba(255,255,255,.65);
+        .field.full {
+            grid-column: 1/-1;
+        }
 
-    margin-top:
-        5px;
-}
+        .form-actions {
+            margin-top: 16px;
 
-.info {
+            display: flex;
+            justify-content: flex-end;
 
-    min-height:
-        49px;
+            gap: 8px;
+        }
 
-    display:
-        flex;
+        /* =====================================================
+           VACCINE ALERTS
+        ===================================================== */
 
-    align-items:
-        center;
+        .alerts {
+            display: grid;
 
-    justify-content:
-        space-between;
+            gap: 10px;
 
-    border-bottom:
-        1px solid
-        var(--linha);
+            margin-bottom: 20px;
+        }
 
-    font-size:
-        12px;
+        .alert {
+            padding: 14px 16px;
 
-    gap:
-        15px;
-}
+            border: 1px solid;
 
-.info:last-child {
+            border-radius: 12px;
 
-    border-bottom:
-        0;
-}
+            display: flex;
+            justify-content: space-between;
 
-.info span {
+            gap: 15px;
 
-    color:
-        var(--muted);
-}
+            font-size: 12px;
+        }
 
-.info strong {
+        .alert.ok {
+            background:
+                var(--success-bg);
 
-    text-align:
-        right;
+            color:
+                var(--success);
 
-    word-break:
-        break-word;
-}
+            border-color:
+                #cce3d1;
+        }
 
-.status-pill {
+        .alert.warning {
+            background:
+                var(--warning-bg);
 
-    border-radius:
-        50px;
+            color:
+                #775820;
 
-    padding:
-        5px
-        9px;
+            border-color:
+                #e9d39e;
+        }
 
-    background:
-        var(--sucesso-bg);
+        .alert.danger {
+            background:
+                var(--danger-bg);
 
-    color:
-        var(--sucesso);
+            color:
+                #8c3c37;
 
-    font-size:
-        10px;
-}
+            border-color:
+                #edc8c4;
+        }
 
-/* ============================================================
-   VACINA
-============================================================ */
+        /* =====================================================
+           TABLE
+        ===================================================== */
 
-.vaccine-header {
+        .table-wrapper {
+            overflow-x: auto;
+        }
 
-    display:
-        flex;
+        table {
+            width: 100%;
 
-    justify-content:
-        space-between;
+            border-collapse: collapse;
 
-    align-items:
-        end;
+            font-size: 12px;
+        }
 
-    gap:
-        20px;
+        th {
+            padding: 12px;
 
-    margin-bottom:
-        20px;
-}
+            text-align: left;
 
-.vaccine-header h3 {
+            background:
+                #f3f3ed;
 
-    color:
-        var(--verde-900);
+            color:
+                var(--muted);
 
-    font-size:
-        24px;
-}
+            font-size: 10px;
 
-.vaccine-header p {
+            text-transform: uppercase;
+        }
 
-    max-width:
-        700px;
+        td {
+            padding: 13px 12px;
 
-    color:
-        var(--muted);
+            border-bottom:
+                1px solid var(--line);
+        }
 
-    font-size:
-        12px;
+        .badge {
+            display: inline-block;
 
-    line-height:
-        1.6;
+            padding:
+                5px 8px;
 
-    margin-top:
-        6px;
-}
+            border-radius:
+                20px;
 
-.btn {
+            font-size: 10px;
 
-    border:
-        0;
+            font-weight: bold;
+        }
 
-    border-radius:
-        10px;
+        .badge.ok {
+            background:
+                var(--success-bg);
 
-    padding:
-        10px
-        14px;
+            color:
+                var(--success);
+        }
 
-    cursor:
-        pointer;
+        .badge.warning {
+            background:
+                var(--warning-bg);
 
-    font-size:
-        12px;
+            color:
+                var(--warning);
+        }
 
-    font-weight:
-        bold;
-}
+        .badge.danger {
+            background:
+                var(--danger-bg);
 
-.btn-primary {
+            color:
+                var(--danger);
+        }
 
-    background:
-        var(--verde-700);
+        /* =====================================================
+           MQTT
+        ===================================================== */
 
-    color:
-        white;
-}
+        .log {
+            min-height: 270px;
+            max-height: 520px;
 
-.btn-secondary {
+            overflow-y: auto;
 
-    background:
-        white;
+            padding: 16px;
 
-    color:
-        var(--verde-800);
+            background:
+                #15251b;
 
-    border:
-        1px solid
-        var(--linha);
-}
+            color:
+                #bad8c0;
 
-.btn-danger {
+            font-family:
+                Consolas,
+                monospace;
 
-    background:
-        var(--vermelho-bg);
+            font-size: 11px;
 
-    color:
-        var(--vermelho);
-}
+            line-height: 1.7;
+        }
 
-.form-panel {
+        .log-time {
+            color: #76927e;
+        }
 
-    margin-bottom:
-        20px;
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
 
-    display:
-        none;
-}
+        @media(max-width: 1100px) {
 
-.form-panel.show {
+            .cards {
+                grid-template-columns:
+                    repeat(2,1fr);
+            }
 
-    display:
-        block;
-}
+            .dashboard-grid {
+                grid-template-columns:
+                    1fr;
+            }
 
-.form-grid {
+            .hero {
+                grid-template-columns:
+                    1fr;
+            }
+        }
 
-    display:
-        grid;
+        @media(max-width: 760px) {
 
-    grid-template-columns:
-        repeat(2,1fr);
+            .app {
+                display: block;
+            }
 
-    gap:
-        15px;
-}
+            .sidebar {
+                min-height: auto;
+                height: auto;
 
-.field.full {
+                position: relative;
+            }
 
-    grid-column:
-        1/-1;
-}
+            .menu {
+                flex-direction: row;
 
-.field label {
+                overflow-x: auto;
+            }
 
-    display:
-        block;
+            .menu-button {
+                min-width: 150px;
+            }
 
-    font-size:
-        11px;
+            .sidebar-footer {
+                display: none;
+            }
 
-    font-weight:
-        bold;
+            .topbar {
+                min-height: auto;
 
-    margin-bottom:
-        6px;
-}
+                padding: 16px;
 
-.field input,
-.field textarea {
+                position: relative;
 
-    width:
-        100%;
+                align-items: flex-start;
 
-    border:
-        1px solid
-        #ccd2c9;
+                flex-direction: column;
 
-    padding:
-        10px;
+                gap: 12px;
+            }
 
-    border-radius:
-        9px;
+            .content {
+                padding: 15px;
+            }
 
-    outline:
-        0;
-}
+            .cards,
+            .coords,
+            .form-grid {
+                grid-template-columns:
+                    1fr;
+            }
 
-.form-actions {
+            .coord {
+                border-right: 0;
 
-    margin-top:
-        16px;
+                border-bottom:
+                    1px solid var(--line);
+            }
 
-    display:
-        flex;
+            .map-wrapper {
+                height: 420px;
+            }
 
-    justify-content:
-        flex-end;
+            .section-title {
+                align-items: flex-start;
 
-    gap:
-        8px;
-}
+                flex-direction: column;
+            }
 
-.alerts {
+            .hero h3 {
+                font-size: 28px;
+            }
+        }
 
-    display:
-        grid;
-
-    gap:
-        10px;
-
-    margin-bottom:
-        20px;
-}
-
-.alert {
-
-    padding:
-        14px;
-
-    border-radius:
-        12px;
-
-    border:
-        1px solid;
-
-    display:
-        flex;
-
-    justify-content:
-        space-between;
-
-    gap:
-        15px;
-
-    font-size:
-        12px;
-}
-
-.alert.warning {
-
-    background:
-        var(--amarelo-bg);
-
-    color:
-        #79581f;
-
-    border-color:
-        #e8d29d;
-}
-
-.alert.danger {
-
-    background:
-        var(--vermelho-bg);
-
-    color:
-        #883d36;
-
-    border-color:
-        #ecc9c5;
-}
-
-.alert.ok {
-
-    background:
-        var(--sucesso-bg);
-
-    color:
-        var(--sucesso);
-
-    border-color:
-        #cbe2d0;
-}
-
-.table-wrapper {
-
-    overflow-x:
-        auto;
-}
-
-table {
-
-    width:
-        100%;
-
-    border-collapse:
-        collapse;
-
-    font-size:
-        12px;
-}
-
-th {
-
-    text-align:
-        left;
-
-    padding:
-        12px;
-
-    background:
-        #f3f3ed;
-
-    color:
-        var(--muted);
-
-    font-size:
-        10px;
-
-    text-transform:
-        uppercase;
-}
-
-td {
-
-    padding:
-        13px
-        12px;
-
-    border-bottom:
-        1px solid
-        var(--linha);
-}
-
-.badge-status {
-
-    display:
-        inline-block;
-
-    padding:
-        5px
-        8px;
-
-    border-radius:
-        20px;
-
-    font-size:
-        10px;
-
-    font-weight:
-        bold;
-}
-
-.badge-status.ok {
-
-    background:
-        var(--sucesso-bg);
-
-    color:
-        var(--sucesso);
-}
-
-.badge-status.warning {
-
-    background:
-        var(--amarelo-bg);
-
-    color:
-        var(--amarelo);
-}
-
-.badge-status.danger {
-
-    background:
-        var(--vermelho-bg);
-
-    color:
-        var(--vermelho);
-}
-
-/* ============================================================
-   MQTT
-============================================================ */
-
-.log {
-
-    background:
-        #15241b;
-
-    color:
-        #bad8c0;
-
-    padding:
-        15px;
-
-    min-height:
-        250px;
-
-    max-height:
-        500px;
-
-    overflow-y:
-        auto;
-
-    font-family:
-        Consolas,
-        monospace;
-
-    font-size:
-        11px;
-
-    line-height:
-        1.7;
-}
-
-.log-time {
-
-    color:
-        #76917d;
-}
-
-/* ============================================================
-   MARCADOR DA VAQUINHA
-============================================================ */
-
-.cow-marker {
-
-    width:
-        58px;
-
-    height:
-        58px;
-
-    border-radius:
-        50%;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    background:
-        white;
-
-    border:
-        4px solid
-        #34744f;
-
-    box-shadow:
-        0 4px 18px
-        rgba(0,0,0,.25);
-
-    font-size:
-        31px;
-}
-
-/* ============================================================
-   MOBILE
-============================================================ */
-
-@media(max-width:1050px) {
-
-    .summary {
-
-        grid-template-columns:
-            repeat(2,1fr);
-    }
-
-    .dashboard-grid {
-
-        grid-template-columns:
-            1fr;
-    }
-}
-
-@media(max-width:760px) {
-
-    .app {
-
-        grid-template-columns:
-            1fr;
-    }
-
-    .sidebar {
-
-        position:
-            relative;
-
-        height:
-            auto;
-
-        min-height:
-            auto;
-    }
-
-    .menu {
-
-        flex-direction:
-            row;
-
-        overflow-x:
-            auto;
-    }
-
-    .menu button {
-
-        min-width:
-            150px;
-    }
-
-    .topbar {
-
-        position:
-            relative;
-
-        padding:
-            15px;
-
-        height:
-            auto;
-
-        flex-direction:
-            column;
-
-        align-items:
-            flex-start;
-
-        gap:
-            12px;
-    }
-
-    .content {
-
-        padding:
-            15px;
-    }
-
-    .hero {
-
-        grid-template-columns:
-            1fr;
-    }
-
-    .summary,
-    .form-grid,
-    .coordinates {
-
-        grid-template-columns:
-            1fr;
-    }
-
-    .map-wrapper {
-
-        height:
-            390px;
-    }
-}
-
-</style>
-
+    </style>
 </head>
 
 <body>
 
 <div class="app">
 
-<!-- ============================================================
-     MENU
-============================================================ -->
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
 
-<aside class="sidebar">
+    <aside class="sidebar">
 
-    <div class="logo">
+        <div class="brand">
 
-        <h1>
-            Bovi<span>GPS</span>
-        </h1>
+            <div class="brand-name">
+                Bovi<span>GPS</span>
+            </div>
 
-        <p>
-            Localização e gestão
-            inteligente do rebanho
-        </p>
+            <p>
+                Monitoramento e gestão
+                inteligente do rebanho.
+            </p>
 
-    </div>
+        </div>
 
-    <div class="menu">
+        <div class="menu">
 
-        <button
-            class="menu-button active"
-            data-page="dashboard"
-        >
-            ◉ Monitoramento
-        </button>
-
-        <button
-            class="menu-button"
-            data-page="vaccination"
-        >
-            ✚ Vacinação
-
-            <span
-                id="vacAlert"
-                class="menu-alert"
+            <button
+                class="menu-button active"
+                data-page="dashboard"
             >
-                0
-            </span>
-        </button>
-
-        <button
-            class="menu-button"
-            data-page="mqtt"
-        >
-            ⌁ Comunicação
-        </button>
-
-    </div>
-
-</aside>
-
-<!-- ============================================================
-     PRINCIPAL
-============================================================ -->
-
-<main class="main">
-
-<header class="topbar">
-
-    <div>
-
-        <h2 id="pageTitle">
-            Monitoramento
-        </h2>
-
-        <p id="pageSubtitle">
-            Dados recebidos da coleira em tempo real
-        </p>
-
-    </div>
-
-    <div class="mqtt-status">
-
-        <span
-            id="mqttDot"
-            class="dot"
-        ></span>
-
-        <span id="mqttStatus">
-            Conectando ao HiveMQ...
-        </span>
-
-    </div>
-
-</header>
-
-<div class="content">
-
-<!-- ============================================================
-     DASHBOARD
-============================================================ -->
-
-<section
-    id="page-dashboard"
-    class="page active"
->
-
-<div class="hero">
-
-    <div>
-
-        <h3>
-            Onde está o animal
-            e como está a coleira?
-        </h3>
-
-        <p>
-            O BoviGPS reúne em uma única tela
-            localização, sinal de rede,
-            alimentação e controle sanitário.
-            Os dados da ESP32 chegam através
-            do HiveMQ e são atualizados
-            automaticamente.
-        </p>
-
-    </div>
-
-    <div class="cow">
-
-        <!-- VAQUINHA SVG -->
-
-        <svg
-            viewBox="0 0 420 300"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-
-            <ellipse
-                cx="210"
-                cy="267"
-                rx="105"
-                ry="16"
-                fill="rgba(0,0,0,.12)"
-            />
-
-            <ellipse
-                cx="210"
-                cy="153"
-                rx="110"
-                ry="105"
-                fill="#fffdf7"
-            />
-
-            <path
-                d="M120 80
-                   C90 57 59 70 55 97
-                   C51 123 80 134 109 115"
-                fill="#fffdf7"
-            />
-
-            <path
-                d="M300 80
-                   C330 57 361 70 365 97
-                   C369 123 340 134 311 115"
-                fill="#fffdf7"
-            />
-
-            <ellipse
-                cx="210"
-                cy="192"
-                rx="67"
-                ry="45"
-                fill="#efb8ac"
-            />
-
-            <ellipse
-                cx="181"
-                cy="191"
-                rx="8"
-                ry="12"
-                fill="#805347"
-            />
-
-            <ellipse
-                cx="239"
-                cy="191"
-                rx="8"
-                ry="12"
-                fill="#805347"
-            />
-
-            <circle
-                cx="169"
-                cy="140"
-                r="8"
-                fill="#252525"
-            />
-
-            <circle
-                cx="250"
-                cy="140"
-                r="8"
-                fill="#252525"
-            />
-
-            <circle
-                cx="167"
-                cy="137"
-                r="2"
-                fill="white"
-            />
-
-            <circle
-                cx="248"
-                cy="137"
-                r="2"
-                fill="white"
-            />
-
-            <path
-                d="M128 103
-                   C145 82 170 77 181 93
-                   C191 108 174 125 149 124
-                   C128 123 118 115 128 103Z"
-                fill="#6d5039"
-            />
-
-            <path
-                d="M250 91
-                   C270 75 297 82 303 101
-                   C309 118 292 127 269 125
-                   C248 124 237 103 250 91Z"
-                fill="#6d5039"
-            />
-
-            <path
-                d="M194 218
-                   C203 225 218 225 227 218"
-                stroke="#995e55"
-                stroke-width="4"
-                stroke-linecap="round"
-                fill="none"
-            />
-
-            <rect
-                x="145"
-                y="65"
-                width="48"
-                height="27"
-                rx="8"
-                fill="#204c35"
-            />
-
-            <circle
-                cx="158"
-                cy="78"
-                r="5"
-                fill="#67e381"
-            />
-
-            <path
-                d="M168 78H181"
-                stroke="white"
-                stroke-width="3"
-                stroke-linecap="round"
-            />
-
-        </svg>
-
-    </div>
-
-</div>
-
-<!-- CARDS -->
-
-<div class="summary">
-
-    <div class="card">
-
-        <div class="card-label">
-            Coleira
-        </div>
-
-        <div
-            id="summaryStatus"
-            class="card-value"
-        >
-            --
-        </div>
-
-        <div
-            id="lastUpdate"
-            class="card-small"
-        >
-            Aguardando comunicação
-        </div>
-
-    </div>
-
-
-    <div class="card">
-
-        <div class="card-label">
-            Rede Wi-Fi
-        </div>
-
-        <div
-            id="summaryNetwork"
-            class="card-value"
-            style="font-size:22px"
-        >
-            --
-        </div>
-
-        <div
-            id="summaryRSSI"
-            class="card-small"
-        >
-            Sinal ainda não recebido
-        </div>
-
-    </div>
-
-
-    <div class="card">
-
-        <div class="card-label">
-            Localização
-        </div>
-
-        <div
-            id="locationCard"
-            class="card-value"
-            style="font-size:20px"
-        >
-            Aguardando
-        </div>
-
-        <div class="card-small">
-            Latitude e longitude
-        </div>
-
-    </div>
-
-
-    <div class="card">
-
-        <div class="card-label">
-            Próxima vacinação
-        </div>
-
-        <div
-            id="nextVaccine"
-            class="card-value"
-            style="font-size:20px"
-        >
-            --
-        </div>
-
-        <div
-            id="nextVaccineDate"
-            class="card-small"
-        >
-            Nenhuma cadastrada
-        </div>
-
-    </div>
-
-</div>
-
-
-<div class="dashboard-grid">
-
-<!-- MAPA -->
-
-<div class="panel">
-
-<div class="panel-header">
-
-    <div>
-
-        <h4>
-            Localização do animal
-        </h4>
-
-        <p id="mapStatus">
-            Aguardando coordenadas
-        </p>
-
-    </div>
-
-</div>
-
-<div class="map-wrapper">
-
-    <div id="map"></div>
-
-    <div class="map-overlay">
-
-        <button
-            class="map-button"
-            onclick="centralizarAnimal()"
-        >
-            Centralizar animal
-        </button>
-
-    </div>
-
-    <div
-        id="locationWarning"
-        class="location-warning"
-    >
-        Ainda não recebemos uma localização válida.
-    </div>
-
-</div>
-
-
-<div class="coordinates">
-
-    <div class="coordinate">
-
-        <span>
-            Latitude
-        </span>
-
-        <strong id="latitude">
-            --
-        </strong>
-
-    </div>
-
-
-    <div class="coordinate">
-
-        <span>
-            Longitude
-        </span>
-
-        <strong id="longitude">
-            --
-        </strong>
-
-    </div>
-
-
-    <div class="coordinate">
-
-        <span>
-            Precisão
-        </span>
-
-        <strong id="accuracy">
-            --
-        </strong>
-
-    </div>
-
-</div>
-
-</div>
-
-
-<!-- DADOS -->
-
-<div class="panel">
-
-    <div class="animal-head">
-
-        <h4>
-            Animal 01
-        </h4>
-
-        <p id="collarID">
-            Coleira aguardando identificação
-        </p>
-
-    </div>
-
-    <div class="panel-body">
-
-        <div class="info">
-
-            <span>Status</span>
-
-            <strong
-                id="animalStatus"
-                class="status-pill"
+                ◉ Monitoramento
+            </button>
+
+            <button
+                class="menu-button"
+                data-page="vaccination"
             >
-                Aguardando
-            </strong>
+                ✚ Vacinação
+
+                <span
+                    id="vacinationCount"
+                    class="menu-count"
+                >
+                    0
+                </span>
+            </button>
+
+            <button
+                class="menu-button"
+                data-page="mqtt"
+            >
+                ⌁ Comunicação
+            </button>
 
         </div>
 
+        <div class="sidebar-footer">
+            BoviGPS<br>
+            Sistema de monitoramento bovino
+        </div>
 
-        <div class="info">
+    </aside>
 
-            <span>Rede Wi-Fi</span>
 
-            <strong id="wifiSSID">
-                --
-            </strong>
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+
+                <h2 id="pageTitle">
+                    Monitoramento
+                </h2>
+
+                <p id="pageSubtitle">
+                    Dados da coleira BoviGPS
+                </p>
+
+            </div>
+
+            <div class="broker-status">
+
+                <div
+                    id="brokerDot"
+                    class="dot"
+                ></div>
+
+                <span id="brokerText">
+                    Conectando ao HiveMQ...
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- =================================================
+                 MONITORAMENTO
+            ================================================== -->
+
+            <section
+                id="page-dashboard"
+                class="page active"
+            >
+
+                <!-- HERO -->
+
+                <div class="hero">
+
+                    <div class="hero-text">
+
+                        <div class="hero-tag">
+                            Monitoramento inteligente
+                        </div>
+
+                        <h3>
+                            Informações do animal
+                            em um único lugar.
+                        </h3>
+
+                        <p>
+                            Acompanhe a coleira,
+                            localização, conectividade,
+                            alimentação e os principais
+                            registros sanitários do animal.
+                        </p>
+
+                    </div>
+
+
+                    <!-- DESENHO VAQUINHA -->
+
+                    <div class="cow-area">
+
+                        <svg
+                            class="cow-svg"
+                            viewBox="0 0 420 300"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+
+                            <ellipse
+                                cx="210"
+                                cy="274"
+                                rx="110"
+                                ry="16"
+                                fill="rgba(0,0,0,.12)"
+                            />
+
+                            <ellipse
+                                cx="210"
+                                cy="150"
+                                rx="108"
+                                ry="105"
+                                fill="#fffdf7"
+                            />
+
+                            <path
+                                d="
+                                M120 80
+                                C90 57 59 70 55 97
+                                C51 123 80 134 109 115
+                                "
+                                fill="#fffdf7"
+                            />
+
+                            <path
+                                d="
+                                M300 80
+                                C330 57 361 70 365 97
+                                C369 123 340 134 311 115
+                                "
+                                fill="#fffdf7"
+                            />
+
+                            <path
+                                d="
+                                M128 103
+                                C145 82 170 77 181 93
+                                C191 108 174 125 149 124
+                                C128 123 118 115 128 103Z
+                                "
+                                fill="#6d5039"
+                            />
+
+                            <path
+                                d="
+                                M250 91
+                                C270 75 297 82 303 101
+                                C309 118 292 127 269 125
+                                C248 124 237 103 250 91Z
+                                "
+                                fill="#6d5039"
+                            />
+
+                            <ellipse
+                                cx="210"
+                                cy="190"
+                                rx="67"
+                                ry="45"
+                                fill="#efb8ac"
+                            />
+
+                            <circle
+                                cx="170"
+                                cy="140"
+                                r="8"
+                                fill="#242424"
+                            />
+
+                            <circle
+                                cx="250"
+                                cy="140"
+                                r="8"
+                                fill="#242424"
+                            />
+
+                            <circle
+                                cx="168"
+                                cy="137"
+                                r="2"
+                                fill="white"
+                            />
+
+                            <circle
+                                cx="248"
+                                cy="137"
+                                r="2"
+                                fill="white"
+                            />
+
+                            <ellipse
+                                cx="181"
+                                cy="190"
+                                rx="8"
+                                ry="12"
+                                fill="#805347"
+                            />
+
+                            <ellipse
+                                cx="239"
+                                cy="190"
+                                rx="8"
+                                ry="12"
+                                fill="#805347"
+                            />
+
+                            <path
+                                d="
+                                M194 217
+                                C203 225 218 225 227 217
+                                "
+                                stroke="#995e55"
+                                stroke-width="4"
+                                stroke-linecap="round"
+                                fill="none"
+                            />
+
+                            <!-- COLEIRA -->
+
+                            <path
+                                d="
+                                M126 232
+                                C169 247 253 247 295 230
+                                "
+                                stroke="#173b2a"
+                                stroke-width="12"
+                                stroke-linecap="round"
+                                fill="none"
+                            />
+
+                            <rect
+                                x="188"
+                                y="229"
+                                width="45"
+                                height="29"
+                                rx="8"
+                                fill="#244f38"
+                            />
+
+                            <circle
+                                cx="201"
+                                cy="243"
+                                r="5"
+                                fill="#78e38b"
+                            />
+
+                            <path
+                                d="M211 243H222"
+                                stroke="white"
+                                stroke-width="3"
+                                stroke-linecap="round"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CARDS -->
+
+                <div class="cards">
+
+                    <div class="card">
+
+                        <div class="card-label">
+                            Status da coleira
+                        </div>
+
+                        <div
+                            id="summaryStatus"
+                            class="card-value"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            id="lastUpdate"
+                            class="card-small"
+                        >
+                            Aguardando comunicação
+                        </div>
+
+                    </div>
+
+
+                    <div class="card">
+
+                        <div class="card-label">
+                            Rede Wi-Fi
+                        </div>
+
+                        <div
+                            id="summaryNetwork"
+                            class="card-value"
+                            style="font-size:22px"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            id="summarySignal"
+                            class="card-small"
+                        >
+                            Aguardando dados
+                        </div>
+
+                    </div>
+
+
+                    <div class="card">
+
+                        <div class="card-label">
+                            Localização
+                        </div>
+
+                        <div
+                            id="locationStatusCard"
+                            class="card-value"
+                            style="font-size:21px"
+                        >
+                            Aguardando
+                        </div>
+
+                        <div
+                            id="locationSmall"
+                            class="card-small"
+                        >
+                            Aguardando coleira
+                        </div>
+
+                    </div>
+
+
+                    <div class="card">
+
+                        <div class="card-label">
+                            Próxima vacinação
+                        </div>
+
+                        <div
+                            id="nextVaccine"
+                            class="card-value"
+                            style="font-size:20px"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            id="nextVaccineDate"
+                            class="card-small"
+                        >
+                            Nenhuma cadastrada
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- GRID -->
+
+                <div class="dashboard-grid">
+
+                    <!-- MAPA -->
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+
+                            <div>
+
+                                <h4>
+                                    Localização do animal
+                                </h4>
+
+                                <p id="mapStatus">
+                                    Aguardando coleira
+                                </p>
+
+                            </div>
+
+                            <div class="location-chip">
+
+                                <span></span>
+
+                                BoviGPS
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="map-wrapper">
+
+                            <div id="map"></div>
+
+                            <div class="map-actions">
+
+                                <button
+                                    class="map-button"
+                                    onclick="centralizarAnimal()"
+                                >
+                                    Centralizar animal
+                                </button>
+
+                                <button
+                                    class="map-button"
+                                    onclick="atualizarLocalizacao()"
+                                >
+                                    Atualizar posição
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="coords">
+
+                            <div class="coord">
+
+                                <span>
+                                    Latitude
+                                </span>
+
+                                <strong id="latitude">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="coord">
+
+                                <span>
+                                    Longitude
+                                </span>
+
+                                <strong id="longitude">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="coord">
+
+                                <span>
+                                    Precisão
+                                </span>
+
+                                <strong id="accuracy">
+                                    --
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- INFORMAÇÕES -->
+
+                    <div class="panel">
+
+                        <div class="animal-head">
+
+                            <h4>
+                                Animal 01
+                            </h4>
+
+                            <p id="collarID">
+                                Coleira aguardando identificação
+                            </p>
+
+                        </div>
+
+
+                        <div class="panel-body">
+
+                            <div class="info-row">
+
+                                <span>
+                                    Status
+                                </span>
+
+                                <strong
+                                    id="animalStatus"
+                                    class="status-pill"
+                                >
+                                    Aguardando
+                                </strong>
+
+                            </div>
+
+
+                            <div class="info-row">
+
+                                <span>
+                                    Rede
+                                </span>
+
+                                <strong id="wifiSSID">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="info-row">
+
+                                <span>
+                                    Endereço IP
+                                </span>
+
+                                <strong id="espIP">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="info-row">
+
+                                <span>
+                                    Sinal
+                                </span>
+
+                                <strong id="wifiRSSI">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="info-row">
+
+                                <span>
+                                    Tempo ligado
+                                </span>
+
+                                <strong id="uptime">
+                                    --
+                                </strong>
+
+                            </div>
+
+
+                            <div class="info-row">
+
+                                <span>
+                                    Alimentação
+                                </span>
+
+                                <strong>
+                                    Power Bank USB-C
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 VACINAÇÃO
+            ================================================== -->
+
+            <section
+                id="page-vaccination"
+                class="page"
+            >
+
+                <div class="section-title">
+
+                    <div>
+
+                        <h3>
+                            Controle de vacinação
+                        </h3>
+
+                        <p>
+                            Cadastre a aplicação e a próxima
+                            dose de acordo com o protocolo
+                            utilizado pelo responsável
+                            veterinário.
+                        </p>
+
+                    </div>
+
+                    <div class="actions">
+
+                        <button
+                            class="button button-secondary"
+                            onclick="ativarNotificacoes()"
+                        >
+                            Ativar alertas
+                        </button>
+
+                        <button
+                            class="button button-primary"
+                            onclick="abrirFormularioVacina(true)"
+                        >
+                            Nova vacinação
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FORM -->
+
+                <div
+                    id="vaccineFormPanel"
+                    class="panel form-panel"
+                >
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h4>
+                                Registrar vacinação
+                            </h4>
+
+                            <p>
+                                Informe os dados da aplicação
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel-body">
+
+                        <form
+                            id="vaccineForm"
+                            onsubmit="salvarVacina(event)"
+                        >
+
+                            <div class="form-grid">
+
+                                <div class="field">
+
+                                    <label>
+                                        Animal
+                                    </label>
+
+                                    <input
+                                        id="vacAnimal"
+                                        type="text"
+                                        value="Animal 01"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="field">
+
+                                    <label>
+                                        Vacina
+                                    </label>
+
+                                    <input
+                                        id="vacName"
+                                        type="text"
+                                        placeholder="Nome da vacina"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="field">
+
+                                    <label>
+                                        Data da aplicação
+                                    </label>
+
+                                    <input
+                                        id="vacApplied"
+                                        type="date"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="field">
+
+                                    <label>
+                                        Próxima dose
+                                    </label>
+
+                                    <input
+                                        id="vacNext"
+                                        type="date"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="field full">
+
+                                    <label>
+                                        Observações
+                                    </label>
+
+                                    <textarea
+                                        id="vacNotes"
+                                        rows="4"
+                                        placeholder="Lote, responsável, observações..."
+                                    ></textarea>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="form-actions">
+
+                                <button
+                                    type="button"
+                                    class="button button-secondary"
+                                    onclick="abrirFormularioVacina(false)"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    class="button button-primary"
+                                >
+                                    Salvar
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="vaccineAlerts"
+                    class="alerts"
+                ></div>
+
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h4>
+                                Histórico de vacinação
+                            </h4>
+
+                            <p>
+                                Aplicações e próximas doses
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Animal
+                                    </th>
+
+                                    <th>
+                                        Vacina
+                                    </th>
+
+                                    <th>
+                                        Aplicação
+                                    </th>
+
+                                    <th>
+                                        Próxima
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    <th></th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody
+                                id="vaccineTable"
+                            ></tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 MQTT
+            ================================================== -->
+
+            <section
+                id="page-mqtt"
+                class="page"
+            >
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h4>
+                                Comunicação MQTT
+                            </h4>
+
+                            <p>
+                                gado/coleira01/#
+                            </p>
+
+                        </div>
+
+                        <strong
+                            id="messageCounter"
+                            style="font-size:12px"
+                        >
+                            0 mensagens
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        id="mqttLog"
+                        class="log"
+                    >
+
+                        <div>
+
+                            <span class="log-time">
+                                [Sistema]
+                            </span>
+
+                            BoviGPS iniciado.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
 
         </div>
 
-
-        <div class="info">
-
-            <span>Endereço IP</span>
-
-            <strong id="espIP">
-                --
-            </strong>
-
-        </div>
-
-
-        <div class="info">
-
-            <span>Sinal</span>
-
-            <strong id="wifiRSSI">
-                --
-            </strong>
-
-        </div>
-
-
-        <div class="info">
-
-            <span>Tempo ligado</span>
-
-            <strong id="uptime">
-                --
-            </strong>
-
-        </div>
-
-
-        <div class="info">
-
-            <span>Alimentação</span>
-
-            <strong id="powerSource">
-                Power Bank USB-C
-            </strong>
-
-        </div>
-
-    </div>
-
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ============================================================
-     VACINAÇÃO
-============================================================ -->
-
-<section
-    id="page-vaccination"
-    class="page"
->
-
-<div class="vaccine-header">
-
-    <div>
-
-        <h3>
-            Vacinação
-        </h3>
-
-        <p>
-            Cadastre a aplicação e a próxima dose conforme
-            o protocolo definido pelo responsável veterinário.
-            O BoviGPS irá acompanhar os prazos.
-        </p>
-
-    </div>
-
-    <div>
-
-        <button
-            class="btn btn-secondary"
-            onclick="enableNotifications()"
-        >
-            Ativar alertas
-        </button>
-
-        <button
-            class="btn btn-primary"
-            onclick="showVaccineForm(true)"
-        >
-            Nova vacinação
-        </button>
-
-    </div>
-
-</div>
-
-
-<div
-    id="vaccineFormPanel"
-    class="panel form-panel"
->
-
-<div class="panel-header">
-
-    <div>
-
-        <h4>
-            Registrar vacinação
-        </h4>
-
-    </div>
-
-</div>
-
-<div class="panel-body">
-
-<form
-    id="vaccineForm"
-    onsubmit="saveVaccine(event)"
->
-
-<div class="form-grid">
-
-<div class="field">
-
-<label>
-Animal
-</label>
-
-<input
-    id="vacAnimal"
-    value="Animal 01"
-    required
->
-
-</div>
-
-
-<div class="field">
-
-<label>
-Vacina
-</label>
-
-<input
-    id="vacName"
-    required
->
-
-</div>
-
-
-<div class="field">
-
-<label>
-Data aplicada
-</label>
-
-<input
-    id="vacDate"
-    type="date"
-    required
->
-
-</div>
-
-
-<div class="field">
-
-<label>
-Próxima dose
-</label>
-
-<input
-    id="vacNext"
-    type="date"
-    required
->
-
-</div>
-
-
-<div class="field full">
-
-<label>
-Observações
-</label>
-
-<textarea
-    id="vacNotes"
-    rows="3"
-></textarea>
-
-</div>
-
-</div>
-
-
-<div class="form-actions">
-
-<button
-    type="button"
-    class="btn btn-secondary"
-    onclick="showVaccineForm(false)"
->
-Cancelar
-</button>
-
-<button
-    type="submit"
-    class="btn btn-primary"
->
-Salvar
-</button>
-
-</div>
-
-</form>
-
-</div>
-
-</div>
-
-
-<div
-    id="vaccineAlerts"
-    class="alerts"
-></div>
-
-
-<div class="panel">
-
-<div class="panel-header">
-
-    <div>
-
-        <h4>
-            Histórico de vacinação
-        </h4>
-
-    </div>
-
-</div>
-
-<div class="table-wrapper">
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>
-Animal
-</th>
-
-<th>
-Vacina
-</th>
-
-<th>
-Aplicação
-</th>
-
-<th>
-Próxima
-</th>
-
-<th>
-Status
-</th>
-
-<th></th>
-
-</tr>
-
-</thead>
-
-<tbody id="vaccineTable">
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ============================================================
-     MQTT
-============================================================ -->
-
-<section
-    id="page-mqtt"
-    class="page"
->
-
-<div class="panel">
-
-<div class="panel-header">
-
-<div>
-
-<h4>
-Comunicação MQTT
-</h4>
-
-<p>
-gado/coleira01/#
-</p>
-
-</div>
-
-<strong id="messageCounter">
-0 mensagens
-</strong>
-
-</div>
-
-<div
-    id="mqttLog"
-    class="log"
->
-
-<div>
-
-<span class="log-time">
-[Sistema]
-</span>
-
-BoviGPS iniciado.
-
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-</div>
-
-</main>
+    </main>
 
 </div>
 
@@ -2346,29 +2130,52 @@ BoviGPS iniciado.
 <script>
 
 /* ============================================================
-   HIVEMQ
+   CONFIGURAÇÃO HIVEMQ
 ============================================================ */
 
 const MQTT_HOST =
-"d5010d2de7ff4182bd09c7fde4c243e5.s1.eu.hivemq.cloud";
+    "d5010d2de7ff4182bd09c7fde4c243e5.s1.eu.hivemq.cloud";
 
 const MQTT_PORT =
-8884;
+    8884;
 
 const MQTT_USER =
-"tfm";
+    "tfm";
 
 const MQTT_PASSWORD =
-"123456789";
+    "123456789";
 
 const MQTT_URL =
-`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
+    `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
 
-const TOPIC =
-"gado/coleira01/#";
+const TOPIC_BASE =
+    "gado/coleira01/#";
+
+const TOPIC_STATUS =
+    "gado/coleira01/status";
 
 
-let messageCount = 0;
+/* ============================================================
+   VARIÁVEIS
+============================================================ */
+
+let contadorMensagens =
+    0;
+
+let coleiraOnline =
+    false;
+
+let localizacaoSolicitada =
+    false;
+
+let latitudeAtual =
+    null;
+
+let longitudeAtual =
+    null;
+
+let precisaoAtual =
+    null;
 
 
 /* ============================================================
@@ -2376,598 +2183,462 @@ let messageCount = 0;
 ============================================================ */
 
 const map =
-L.map(
-    "map",
-    {
-        zoomControl: true
-    }
-)
-.setView(
-    [-15.8, -47.9],
-    4
-);
+    L.map(
+        "map"
+    )
+    .setView(
+        [-14.2350, -51.9253],
+        4
+    );
 
 
 L.tileLayer(
+
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
     {
-        maxZoom: 19,
+
+        maxZoom:
+            19,
 
         attribution:
-        "&copy; OpenStreetMap"
+            "&copy; OpenStreetMap"
+
     }
+
 )
 .addTo(map);
 
 
+/* ============================================================
+   ÍCONE VAQUINHA
+============================================================ */
+
 const cowIcon =
-L.divIcon({
+    L.divIcon({
 
-    html:
-    '<div class="cow-marker">🐄</div>',
+        html:
+            '<div class="cow-marker">🐄</div>',
 
-    className:
-    "",
+        className:
+            "",
 
-    iconSize:
-    [58,58],
+        iconSize:
+            [62,62],
 
-    iconAnchor:
-    [29,29]
+        iconAnchor:
+            [31,31]
 
-});
+    });
 
 
-let animalMarker =
-null;
+let marcadorAnimal =
+    null;
 
-let accuracyCircle =
-null;
-
-let currentLat =
-null;
-
-let currentLng =
-null;
+let circuloPrecisao =
+    null;
 
 
 /* ============================================================
-   FUNÇÕES DE LOCALIZAÇÃO
+   GEOLOCALIZAÇÃO
 ============================================================ */
 
-function parseNumber(value) {
+function solicitarLocalizacao() {
 
     if (
-        value === null ||
-        value === undefined ||
-        value === ""
+        !navigator.geolocation
     ) {
-
-        return null;
-
-    }
-
-
-    const n =
-    Number(
-        String(value)
-        .replace(",", ".")
-    );
-
-
-    return Number.isFinite(n)
-        ? n
-        : null;
-
-}
-
-
-function extractLatitude(data) {
-
-    return parseNumber(
-
-        data.latitude ??
-
-        data.lat ??
-
-        data.location?.lat ??
-
-        data.localizacao?.latitude
-
-    );
-
-}
-
-
-function extractLongitude(data) {
-
-    return parseNumber(
-
-        data.longitude ??
-
-        data.lng ??
-
-        data.lon ??
-
-        data.location?.lng ??
-
-        data.location?.lon ??
-
-        data.localizacao?.longitude
-
-    );
-
-}
-
-
-function extractAccuracy(data) {
-
-    return parseNumber(
-
-        data.precisao_m ??
-
-        data.precisao ??
-
-        data.accuracy
-
-    );
-
-}
-
-
-function validCoordinates(
-    lat,
-    lng
-) {
-
-    if (
-        lat === null ||
-        lng === null
-    ) {
-
-        return false;
-    }
-
-
-    if (
-        lat < -90 ||
-        lat > 90 ||
-        lng < -180 ||
-        lng > 180
-    ) {
-
-        return false;
-    }
-
-
-    /*
-       Evita interpretar 0,0 como
-       localização real.
-    */
-
-    if (
-        lat === 0 &&
-        lng === 0
-    ) {
-
-        return false;
-    }
-
-
-    return true;
-
-}
-
-
-function updateLocation(data) {
-
-    const lat =
-    extractLatitude(data);
-
-    const lng =
-    extractLongitude(data);
-
-    const accuracy =
-    extractAccuracy(data);
-
-
-    if (
-        !validCoordinates(
-            lat,
-            lng
-        )
-    ) {
-
-        document.getElementById(
-            "locationCard"
-        ).innerText =
-        "Sem posição";
-
 
         document.getElementById(
             "mapStatus"
         ).innerText =
-        "Coordenadas ainda não recebidas";
-
-
-        document.getElementById(
-            "locationWarning"
-        ).style.display =
-        "block";
+            "Localização indisponível";
 
         return;
-
     }
-
-
-    currentLat =
-    lat;
-
-    currentLng =
-    lng;
-
-
-    document.getElementById(
-        "locationWarning"
-    ).style.display =
-    "none";
-
-
-    document.getElementById(
-        "latitude"
-    ).innerText =
-    lat.toFixed(6);
-
-
-    document.getElementById(
-        "longitude"
-    ).innerText =
-    lng.toFixed(6);
-
-
-    document.getElementById(
-        "locationCard"
-    ).innerText =
-    "Localizado";
 
 
     if (
-        accuracy !== null
+        localizacaoSolicitada
     ) {
 
-        document.getElementById(
-            "accuracy"
-        ).innerText =
-        Math.round(accuracy) +
-        " m";
-
+        return;
     }
-    else {
 
-        document.getElementById(
-            "accuracy"
-        ).innerText =
-        "--";
 
-    }
+    localizacaoSolicitada =
+        true;
 
 
     document.getElementById(
         "mapStatus"
     ).innerText =
-    "Última posição recebida agora";
+        "Obtendo localização...";
 
 
-    /*
+    navigator.geolocation
+        .getCurrentPosition(
+
+            function(posicao) {
+
+                const latitude =
+                    posicao.coords.latitude;
+
+                const longitude =
+                    posicao.coords.longitude;
+
+                const precisao =
+                    posicao.coords.accuracy || 0;
+
+
+                atualizarPosicao(
+                    latitude,
+                    longitude,
+                    precisao
+                );
+
+            },
+
+            function(erro) {
+
+                console.log(
+                    erro
+                );
+
+                document.getElementById(
+                    "mapStatus"
+                ).innerText =
+                    "Localização indisponível";
+
+
+                document.getElementById(
+                    "locationStatusCard"
+                ).innerText =
+                    "Indisponível";
+
+
+                localizacaoSolicitada =
+                    false;
+
+            },
+
+            {
+
+                enableHighAccuracy:
+                    true,
+
+                timeout:
+                    15000,
+
+                maximumAge:
+                    30000
+
+            }
+
+        );
+
+}
+
+
+/* ============================================================
+   ATUALIZAR LOCALIZAÇÃO MANUAL
+============================================================ */
+
+function atualizarLocalizacao() {
+
+    localizacaoSolicitada =
+        false;
+
+    solicitarLocalizacao();
+
+}
+
+
+/* ============================================================
+   ATUALIZAR POSIÇÃO
+============================================================ */
+
+function atualizarPosicao(
+    latitude,
+    longitude,
+    precisao
+) {
+
+    latitudeAtual =
+        latitude;
+
+    longitudeAtual =
+        longitude;
+
+    precisaoAtual =
+        precisao;
+
+
+    document.getElementById(
+        "latitude"
+    ).innerText =
+        latitude.toFixed(6);
+
+
+    document.getElementById(
+        "longitude"
+    ).innerText =
+        longitude.toFixed(6);
+
+
+    document.getElementById(
+        "accuracy"
+    ).innerText =
+        precisao > 0
+            ?
+            Math.round(
+                precisao
+            ) +
+            " m"
+            :
+            "--";
+
+
+    document.getElementById(
+        "locationStatusCard"
+    ).innerText =
+        "Localizado";
+
+
+    document.getElementById(
+        "locationSmall"
+    ).innerText =
+        "Posição atualizada";
+
+
+    document.getElementById(
+        "mapStatus"
+    ).innerText =
+        "Localização estimada";
+
+
+    /* ========================================================
        MARCADOR
-    */
+    ======================================================== */
 
     if (
-        animalMarker === null
+        !marcadorAnimal
     ) {
 
-        animalMarker =
-        L.marker(
-            [lat,lng],
-            {
-                icon:
-                cowIcon
-            }
-        )
-        .addTo(map);
+        marcadorAnimal =
+            L.marker(
+
+                [
+                    latitude,
+                    longitude
+                ],
+
+                {
+                    icon:
+                        cowIcon
+                }
+
+            )
+            .addTo(
+                map
+            );
 
     }
     else {
 
-        animalMarker
-        .setLatLng(
-            [lat,lng]
-        );
+        marcadorAnimal
+            .setLatLng(
+                [
+                    latitude,
+                    longitude
+                ]
+            );
 
     }
 
 
-    animalMarker
-    .bindPopup(
-        `
-        <strong>BoviGPS - Animal 01</strong><br>
-        Latitude: ${lat.toFixed(6)}<br>
-        Longitude: ${lng.toFixed(6)}<br>
-        ${
-            accuracy !== null
-            ?
-            "Precisão: " +
-            Math.round(accuracy) +
-            " m"
-            :
-            ""
-        }
-        `
-    );
+    marcadorAnimal
+        .bindPopup(
+            `
+            <div
+                style="
+                    min-width:190px;
+                    font-family:Arial;
+                "
+            >
+
+                <strong
+                    style="
+                        color:#265b3e;
+                        font-size:15px;
+                    "
+                >
+                    🐄 BoviGPS
+                </strong>
+
+                <br><br>
+
+                <strong>
+                    Animal 01
+                </strong>
+
+                <br><br>
+
+                Latitude:
+                ${latitude.toFixed(6)}
+
+                <br>
+
+                Longitude:
+                ${longitude.toFixed(6)}
+
+            </div>
+            `
+        );
 
 
-    /*
-       CÍRCULO DA PRECISÃO
-    */
+    /* ========================================================
+       PRECISÃO
+    ======================================================== */
 
     if (
-        accuracy !== null &&
-        accuracy > 0
+        precisao >
+        0
     ) {
 
         if (
-            accuracyCircle === null
+            !circuloPrecisao
         ) {
 
-            accuracyCircle =
-            L.circle(
-                [lat,lng],
-                {
-                    radius:
-                    accuracy,
+            circuloPrecisao =
+                L.circle(
 
-                    color:
-                    "#34744f",
+                    [
+                        latitude,
+                        longitude
+                    ],
 
-                    weight:
-                    2,
+                    {
 
-                    fillColor:
-                    "#4e9368",
+                        radius:
+                            precisao,
 
-                    fillOpacity:
-                    .12
-                }
-            )
-            .addTo(map);
+                        color:
+                            "#3f7f56",
+
+                        weight:
+                            2,
+
+                        fillColor:
+                            "#6ba77b",
+
+                        fillOpacity:
+                            .12
+
+                    }
+
+                )
+                .addTo(
+                    map
+                );
 
         }
         else {
 
-            accuracyCircle
-            .setLatLng(
-                [lat,lng]
-            );
+            circuloPrecisao
+                .setLatLng(
+                    [
+                        latitude,
+                        longitude
+                    ]
+                );
 
-            accuracyCircle
-            .setRadius(
-                accuracy
-            );
+
+            circuloPrecisao
+                .setRadius(
+                    precisao
+                );
 
         }
 
     }
 
 
-    /*
-       CENTRALIZAR
-    */
+    /* ========================================================
+       ZOOM
+    ======================================================== */
 
     map.flyTo(
-        [lat,lng],
-        accuracy &&
-        accuracy > 500
-        ?
-        13
-        :
-        16,
+
+        [
+            latitude,
+            longitude
+        ],
+
+        17,
+
         {
+
             duration:
-            1.3
+                1.3
+
         }
-    );
 
-
-    /*
-       SALVAR ÚLTIMA POSIÇÃO
-    */
-
-    localStorage.setItem(
-        "bovigps_last_location",
-        JSON.stringify({
-            latitude:
-            lat,
-
-            longitude:
-            lng,
-
-            accuracy:
-            accuracy
-        })
     );
 
 }
 
 
+/* ============================================================
+   CENTRALIZAR
+============================================================ */
+
 function centralizarAnimal() {
 
     if (
-        currentLat === null ||
-        currentLng === null
+        latitudeAtual ===
+        null ||
+        longitudeAtual ===
+        null
     ) {
 
-        alert(
-            "Ainda não há uma localização válida recebida da coleira."
-        );
+        if (
+            coleiraOnline
+        ) {
+
+            solicitarLocalizacao();
+
+        }
 
         return;
     }
 
 
     map.flyTo(
+
         [
-            currentLat,
-            currentLng
+            latitudeAtual,
+            longitudeAtual
         ],
-        16,
+
+        17,
+
         {
+
             duration:
-            1
+                1
+
         }
-    );
-
-
-    if (
-        animalMarker
-    ) {
-
-        animalMarker.openPopup();
-
-    }
-
-}
-
-
-/* ============================================================
-   EXTRAIR REDE
-============================================================ */
-
-function extractNetwork(data) {
-
-    const network =
-
-    data.wifi ??
-
-    data.wifi_ssid ??
-
-    data.ssid ??
-
-    data.rede ??
-
-    data.network;
-
-
-    if (
-        network === null ||
-        network === undefined ||
-        network === ""
-    ) {
-
-        return null;
-
-    }
-
-
-    return String(network);
-
-}
-
-
-/* ============================================================
-   ATUALIZAR REDE
-============================================================ */
-
-function updateNetwork(data) {
-
-    const network =
-    extractNetwork(data);
-
-
-    if (
-        network
-    ) {
-
-        document.getElementById(
-            "wifiSSID"
-        ).innerText =
-        network;
-
-
-        document.getElementById(
-            "summaryNetwork"
-        ).innerText =
-        network;
-
-    }
-
-
-    const rssi =
-    parseNumber(
-
-        data.rssi ??
-
-        data.wifi_rssi ??
-
-        data.signal
 
     );
 
 
     if (
-        rssi !== null
+        marcadorAnimal
     ) {
 
-        document.getElementById(
-            "wifiRSSI"
-        ).innerText =
-        rssi +
-        " dBm";
-
-
-        let quality =
-        "Muito fraco";
-
-
-        if (
-            rssi >= -50
-        ) {
-
-            quality =
-            "Excelente";
-
-        }
-        else if (
-            rssi >= -60
-        ) {
-
-            quality =
-            "Muito bom";
-
-        }
-        else if (
-            rssi >= -70
-        ) {
-
-            quality =
-            "Bom";
-
-        }
-        else if (
-            rssi >= -80
-        ) {
-
-            quality =
-            "Regular";
-
-        }
-
-
-        document.getElementById(
-            "summaryRSSI"
-        ).innerText =
-        rssi +
-        " dBm • " +
-        quality;
+        marcadorAnimal
+            .openPopup();
 
     }
 
@@ -2975,180 +2646,49 @@ function updateNetwork(data) {
 
 
 /* ============================================================
-   TELEMETRIA
+   LOG MQTT
 ============================================================ */
 
-function processTelemetry(data) {
-
-    /*
-       REDE
-    */
-
-    updateNetwork(data);
-
-
-    /*
-       LOCALIZAÇÃO
-
-       Agora tentamos atualizar a localização
-       em QUALQUER mensagem que contenha
-       coordenadas.
-    */
-
-    const lat =
-    extractLatitude(data);
-
-    const lng =
-    extractLongitude(data);
-
-
-    if (
-        lat !== null ||
-        lng !== null
-    ) {
-
-        updateLocation(data);
-
-    }
-
-
-    /*
-       ID DA COLEIRA
-    */
-
-    if (
-        data.coleira
-    ) {
-
-        document.getElementById(
-            "collarID"
-        ).innerText =
-        data.coleira;
-
-    }
-
-
-    /*
-       IP
-    */
-
-    if (
-        data.ip
-    ) {
-
-        document.getElementById(
-            "espIP"
-        ).innerText =
-        data.ip;
-
-    }
-
-
-    /*
-       TEMPO LIGADO
-    */
-
-    if (
-        data.tempo_ligado_s !==
-        undefined
-    ) {
-
-        document.getElementById(
-            "uptime"
-        ).innerText =
-        formatTime(
-            Number(
-                data.tempo_ligado_s
-            )
-        );
-
-    }
-
-
-    /*
-       ALIMENTAÇÃO
-    */
-
-    if (
-        data.alimentacao
-    ) {
-
-        document.getElementById(
-            "powerSource"
-        ).innerText =
-        data.alimentacao;
-
-    }
-
-
-    /*
-       BATERIA
-    */
-
-    const battery =
-    parseNumber(
-
-        data.porcentagem ??
-
-        data.bateria_pct ??
-
-        data.bateria
-
-    );
-
-
-    if (
-        battery !== null &&
-        battery >= 0
-    ) {
-
-        document.getElementById(
-            "powerSource"
-        ).innerText =
-        Math.round(battery) +
-        "%";
-
-    }
-
-}
-
-
-/* ============================================================
-   MQTT LOG
-============================================================ */
-
-function addLog(text) {
+function adicionarLog(
+    texto
+) {
 
     const log =
-    document.getElementById(
-        "mqttLog"
-    );
+        document.getElementById(
+            "mqttLog"
+        );
 
 
-    const time =
-    new Date()
-    .toLocaleTimeString(
-        "pt-BR"
-    );
+    const linha =
+        document.createElement(
+            "div"
+        );
 
 
-    const line =
-    document.createElement(
-        "div"
-    );
+    const agora =
+        new Date()
+        .toLocaleTimeString(
+            "pt-BR"
+        );
 
 
-    line.innerHTML =
-    `<span class="log-time">[${time}]</span> ${escapeHTML(text)}`;
+    linha.innerHTML =
+        `
+        <span class="log-time">
+            [${agora}]
+        </span>
+
+        ${escapeHTML(texto)}
+        `;
 
 
     log.appendChild(
-        line
+        linha
     );
 
 
     log.scrollTop =
-    log.scrollHeight;
+        log.scrollHeight;
 
 }
 
@@ -3158,221 +2698,293 @@ function addLog(text) {
 ============================================================ */
 
 const client =
-mqtt.connect(
-    MQTT_URL,
-    {
+    mqtt.connect(
 
-        username:
-        MQTT_USER,
+        MQTT_URL,
 
-        password:
-        MQTT_PASSWORD,
+        {
 
-        clientId:
-        "BoviGPS_WEB_" +
-        Math.random()
-        .toString(16)
-        .substring(2),
+            username:
+                MQTT_USER,
 
-        clean:
-        true,
+            password:
+                MQTT_PASSWORD,
 
-        connectTimeout:
-        10000,
+            clientId:
+                "BoviGPS_WEB_" +
+                Math.random()
+                .toString(16)
+                .substring(2),
 
-        reconnectPeriod:
-        3000,
+            clean:
+                true,
 
-        keepalive:
-        60
+            reconnectPeriod:
+                3000,
 
-    }
-);
+            connectTimeout:
+                10000,
 
+            keepalive:
+                60
+
+        }
+
+    );
+
+
+/* ============================================================
+   MQTT CONECTADO
+============================================================ */
 
 client.on(
+
     "connect",
-    () => {
+
+    function() {
 
         document.getElementById(
-            "mqttDot"
+            "brokerDot"
         ).className =
-        "dot online";
+            "dot online";
 
 
         document.getElementById(
-            "mqttStatus"
+            "brokerText"
         ).innerText =
-        "HiveMQ conectado";
+            "HiveMQ conectado";
 
 
-        addLog(
-            "Conectado ao HiveMQ"
+        adicionarLog(
+            "Conectado ao HiveMQ."
         );
 
 
         client.subscribe(
-            TOPIC,
-            error => {
+
+            TOPIC_BASE,
+
+            function(erro) {
 
                 if (
-                    error
+                    erro
                 ) {
 
-                    addLog(
-                        "Erro ao assinar " +
-                        TOPIC
+                    adicionarLog(
+                        "Erro ao assinar o tópico."
                     );
 
                 }
                 else {
 
-                    addLog(
+                    adicionarLog(
                         "Inscrito em " +
-                        TOPIC
+                        TOPIC_BASE
                     );
 
                 }
 
             }
+
         );
 
     }
-);
 
-
-client.on(
-    "offline",
-    () => {
-
-        document.getElementById(
-            "mqttDot"
-        ).className =
-        "dot offline";
-
-
-        document.getElementById(
-            "mqttStatus"
-        ).innerText =
-        "HiveMQ desconectado";
-
-    }
-);
-
-
-client.on(
-    "reconnect",
-    () => {
-
-        document.getElementById(
-            "mqttDot"
-        ).className =
-        "dot";
-
-
-        document.getElementById(
-            "mqttStatus"
-        ).innerText =
-        "Reconectando...";
-
-    }
-);
-
-
-client.on(
-    "error",
-    error => {
-
-        addLog(
-            "Erro MQTT: " +
-            error.message
-        );
-
-    }
 );
 
 
 /* ============================================================
-   RECEBER MENSAGEM
+   MQTT OFFLINE
 ============================================================ */
 
 client.on(
+
+    "offline",
+
+    function() {
+
+        document.getElementById(
+            "brokerDot"
+        ).className =
+            "dot offline";
+
+
+        document.getElementById(
+            "brokerText"
+        ).innerText =
+            "HiveMQ desconectado";
+
+    }
+
+);
+
+
+/* ============================================================
+   MQTT RECONNECT
+============================================================ */
+
+client.on(
+
+    "reconnect",
+
+    function() {
+
+        document.getElementById(
+            "brokerDot"
+        ).className =
+            "dot";
+
+
+        document.getElementById(
+            "brokerText"
+        ).innerText =
+            "Reconectando...";
+
+    }
+
+);
+
+
+/* ============================================================
+   MQTT ERROR
+============================================================ */
+
+client.on(
+
+    "error",
+
+    function(erro) {
+
+        adicionarLog(
+            "Erro MQTT: " +
+            erro.message
+        );
+
+    }
+
+);
+
+
+/* ============================================================
+   RECEBER MQTT
+============================================================ */
+
+client.on(
+
     "message",
-    (
+
+    function(
         topic,
         message
-    ) => {
+    ) {
 
-        const text =
-        message.toString();
+        const texto =
+            message.toString();
 
 
-        messageCount++;
+        contadorMensagens++;
 
 
         document.getElementById(
             "messageCounter"
         ).innerText =
-        messageCount +
-        " mensagens";
+            contadorMensagens +
+            " mensagens";
 
 
-        addLog(
+        adicionarLog(
             topic +
             " → " +
-            text
+            texto
         );
 
 
         document.getElementById(
             "lastUpdate"
         ).innerText =
-        "Atualizado às " +
-        new Date()
-        .toLocaleTimeString(
-            "pt-BR"
-        );
+            "Atualizado às " +
+            new Date()
+            .toLocaleTimeString(
+                "pt-BR"
+            );
 
 
-        /*
+        /* ====================================================
            STATUS
-        */
+        ==================================================== */
 
         if (
+            topic ===
+            TOPIC_STATUS ||
             topic.endsWith(
                 "/status"
             )
         ) {
 
             const online =
-            text
-            .trim()
-            .toLowerCase() ===
-            "online";
+                texto
+                .trim()
+                .toLowerCase() ===
+                "online";
+
+
+            coleiraOnline =
+                online;
 
 
             document.getElementById(
                 "summaryStatus"
             ).innerText =
-            online
-            ?
-            "Online"
-            :
-            "Offline";
+                online
+                ?
+                "Online"
+                :
+                "Offline";
 
 
             const status =
-            document.getElementById(
-                "animalStatus"
-            );
+                document.getElementById(
+                    "animalStatus"
+                );
 
 
             status.innerText =
-            online
-            ?
-            "Online"
-            :
-            "Offline";
+                online
+                ?
+                "Online"
+                :
+                "Offline";
+
+
+            status.style.background =
+                online
+                ?
+                "#edf7ef"
+                :
+                "#fff0ee";
+
+
+            status.style.color =
+                online
+                ?
+                "#3e8050"
+                :
+                "#b54e48";
+
+
+            if (
+                online
+            ) {
+
+                document.getElementById(
+                    "locationSmall"
+                ).innerText =
+                    "Obtendo posição";
+
+
+                solicitarLocalizacao();
+
+            }
 
 
             return;
@@ -3380,19 +2992,19 @@ client.on(
         }
 
 
-        /*
+        /* ====================================================
            JSON
-        */
+        ==================================================== */
 
-        let data;
+        let dados;
 
 
         try {
 
-            data =
-            JSON.parse(
-                text
-            );
+            dados =
+                JSON.parse(
+                    texto
+                );
 
         }
         catch {
@@ -3402,66 +3014,226 @@ client.on(
         }
 
 
-        /*
-           IMPORTANTE:
-
-           Agora não dependemos mais apenas
-           do nome exato do tópico.
-
-           Se qualquer mensagem possuir:
-           wifi, latitude, longitude, etc.,
-           ela será processada.
-        */
-
-        processTelemetry(
-            data
+        processarDados(
+            dados
         );
 
     }
+
 );
 
 
 /* ============================================================
-   TEMPO
+   PROCESSAR DADOS ESP32
 ============================================================ */
 
-function formatTime(seconds) {
+function processarDados(
+    dados
+) {
 
-    const days =
-    Math.floor(
-        seconds /
-        86400
-    );
+    /* ========================================================
+       REDE
+    ======================================================== */
 
-
-    const hours =
-    Math.floor(
-        (
-            seconds %
-            86400
-        ) /
-        3600
-    );
-
-
-    const minutes =
-    Math.floor(
-        (
-            seconds %
-            3600
-        ) /
-        60
-    );
+    const rede =
+        dados.wifi ??
+        dados.wifi_ssid ??
+        dados.ssid ??
+        dados.rede;
 
 
     if (
-        days > 0
+        rede
+    ) {
+
+        document.getElementById(
+            "wifiSSID"
+        ).innerText =
+            rede;
+
+
+        document.getElementById(
+            "summaryNetwork"
+        ).innerText =
+            rede;
+
+    }
+
+
+    /* ========================================================
+       RSSI
+    ======================================================== */
+
+    const rssi =
+        dados.rssi ??
+        dados.wifi_rssi;
+
+
+    if (
+        rssi !==
+        undefined
+    ) {
+
+        const valor =
+            Number(
+                rssi
+            );
+
+
+        document.getElementById(
+            "wifiRSSI"
+        ).innerText =
+            valor +
+            " dBm";
+
+
+        let qualidade =
+            "Fraco";
+
+
+        if (
+            valor >= -50
+        ) {
+
+            qualidade =
+                "Excelente";
+
+        }
+        else if (
+            valor >= -60
+        ) {
+
+            qualidade =
+                "Muito bom";
+
+        }
+        else if (
+            valor >= -70
+        ) {
+
+            qualidade =
+                "Bom";
+
+        }
+        else if (
+            valor >= -80
+        ) {
+
+            qualidade =
+                "Regular";
+
+        }
+
+
+        document.getElementById(
+            "summarySignal"
+        ).innerText =
+            valor +
+            " dBm • " +
+            qualidade;
+
+    }
+
+
+    /* ========================================================
+       COLEIRA
+    ======================================================== */
+
+    if (
+        dados.coleira
+    ) {
+
+        document.getElementById(
+            "collarID"
+        ).innerText =
+            dados.coleira;
+
+    }
+
+
+    /* ========================================================
+       IP
+    ======================================================== */
+
+    if (
+        dados.ip
+    ) {
+
+        document.getElementById(
+            "espIP"
+        ).innerText =
+            dados.ip;
+
+    }
+
+
+    /* ========================================================
+       TEMPO LIGADO
+    ======================================================== */
+
+    if (
+        dados.tempo_ligado_s !==
+        undefined
+    ) {
+
+        document.getElementById(
+            "uptime"
+        ).innerText =
+            formatarTempo(
+                Number(
+                    dados.tempo_ligado_s
+                )
+            );
+
+    }
+
+}
+
+
+/* ============================================================
+   FORMATAR TEMPO
+============================================================ */
+
+function formatarTempo(
+    segundos
+) {
+
+    const dias =
+        Math.floor(
+            segundos /
+            86400
+        );
+
+
+    const horas =
+        Math.floor(
+            (
+                segundos %
+                86400
+            ) /
+            3600
+        );
+
+
+    const minutos =
+        Math.floor(
+            (
+                segundos %
+                3600
+            ) /
+            60
+        );
+
+
+    if (
+        dias >
+        0
     ) {
 
         return (
-            days +
+            dias +
             "d " +
-            hours +
+            horas +
             "h"
         );
 
@@ -3469,13 +3241,14 @@ function formatTime(seconds) {
 
 
     if (
-        hours > 0
+        horas >
+        0
     ) {
 
         return (
-            hours +
+            horas +
             "h " +
-            minutes +
+            minutos +
             "min"
         );
 
@@ -3483,7 +3256,7 @@ function formatTime(seconds) {
 
 
     return (
-        minutes +
+        minutos +
         " min"
     );
 
@@ -3494,35 +3267,35 @@ function formatTime(seconds) {
    NAVEGAÇÃO
 ============================================================ */
 
-const pageInfo = {
+const paginas = {
 
     dashboard: {
 
-        title:
-        "Monitoramento",
+        titulo:
+            "Monitoramento",
 
-        subtitle:
-        "Dados recebidos da coleira em tempo real"
+        subtitulo:
+            "Dados da coleira BoviGPS"
 
     },
 
     vaccination: {
 
-        title:
-        "Vacinação",
+        titulo:
+            "Vacinação",
 
-        subtitle:
-        "Controle sanitário do animal"
+        subtitulo:
+            "Controle sanitário do animal"
 
     },
 
     mqtt: {
 
-        title:
-        "Comunicação",
+        titulo:
+            "Comunicação",
 
-        subtitle:
-        "Mensagens recebidas pelo HiveMQ"
+        subtitulo:
+            "Mensagens recebidas pelo HiveMQ"
 
     }
 
@@ -3534,14 +3307,18 @@ document
     ".menu-button"
 )
 .forEach(
-    button => {
 
-        button.addEventListener(
+    function(botao) {
+
+        botao
+        .addEventListener(
+
             "click",
+
             function() {
 
-                const page =
-                this.dataset.page;
+                const pagina =
+                    this.dataset.page;
 
 
                 document
@@ -3576,7 +3353,7 @@ document
                 document
                 .getElementById(
                     "page-" +
-                    page
+                    pagina
                 )
                 .classList
                 .add(
@@ -3587,40 +3364,42 @@ document
                 document.getElementById(
                     "pageTitle"
                 ).innerText =
-                pageInfo[page].title;
+                    paginas[pagina]
+                    .titulo;
 
 
                 document.getElementById(
                     "pageSubtitle"
                 ).innerText =
-                pageInfo[page].subtitle;
+                    paginas[pagina]
+                    .subtitulo;
 
-
-                /*
-                   Corrige tamanho do Leaflet
-                   quando volta para aba mapa.
-                */
 
                 if (
-                    page ===
+                    pagina ===
                     "dashboard"
                 ) {
 
                     setTimeout(
-                        () => {
+
+                        function() {
 
                             map.invalidateSize();
 
                         },
+
                         150
+
                     );
 
                 }
 
             }
+
         );
 
     }
+
 );
 
 
@@ -3628,17 +3407,17 @@ document
    VACINAÇÃO
 ============================================================ */
 
-const STORAGE =
-"bovigps_vaccines";
+const VAC_STORAGE =
+    "bovigps_vacinas";
 
 
-function getVaccines() {
+function obterVacinas() {
 
     try {
 
         return JSON.parse(
             localStorage.getItem(
-                STORAGE
+                VAC_STORAGE
             )
         ) || [];
 
@@ -3652,19 +3431,23 @@ function getVaccines() {
 }
 
 
-function setVaccines(data) {
+function salvarVacinas(
+    vacinas
+) {
 
     localStorage.setItem(
-        STORAGE,
+        VAC_STORAGE,
         JSON.stringify(
-            data
+            vacinas
         )
     );
 
 }
 
 
-function showVaccineForm(show) {
+function abrirFormularioVacina(
+    mostrar
+) {
 
     document
     .getElementById(
@@ -3673,61 +3456,63 @@ function showVaccineForm(show) {
     .classList
     .toggle(
         "show",
-        show
+        mostrar
     );
 
 }
 
 
-function saveVaccine(event) {
+function salvarVacina(
+    evento
+) {
 
-    event.preventDefault();
+    evento.preventDefault();
 
 
-    const item = {
+    const vacina = {
 
         id:
-        Date.now(),
+            Date.now(),
 
         animal:
-        document.getElementById(
-            "vacAnimal"
-        ).value,
+            document.getElementById(
+                "vacAnimal"
+            ).value.trim(),
 
-        vaccine:
-        document.getElementById(
-            "vacName"
-        ).value,
+        nome:
+            document.getElementById(
+                "vacName"
+            ).value.trim(),
 
-        date:
-        document.getElementById(
-            "vacDate"
-        ).value,
+        aplicada:
+            document.getElementById(
+                "vacApplied"
+            ).value,
 
-        next:
-        document.getElementById(
-            "vacNext"
-        ).value,
+        proxima:
+            document.getElementById(
+                "vacNext"
+            ).value,
 
-        notes:
-        document.getElementById(
-            "vacNotes"
-        ).value
+        observacao:
+            document.getElementById(
+                "vacNotes"
+            ).value.trim()
 
     };
 
 
-    const data =
-    getVaccines();
+    const lista =
+        obterVacinas();
 
 
-    data.push(
-        item
+    lista.push(
+        vacina
     );
 
 
-    setVaccines(
-        data
+    salvarVacinas(
+        lista
     );
 
 
@@ -3739,26 +3524,32 @@ function saveVaccine(event) {
     document.getElementById(
         "vacAnimal"
     ).value =
-    "Animal 01";
+        "Animal 01";
 
 
-    showVaccineForm(
+    abrirFormularioVacina(
         false
     );
 
 
-    renderVaccines();
+    renderizarVacinas();
 
 }
 
 
-function vaccineStatus(date) {
+/* ============================================================
+   STATUS VACINA
+============================================================ */
 
-    const today =
-    new Date();
+function statusVacina(
+    data
+) {
+
+    const hoje =
+        new Date();
 
 
-    today.setHours(
+    hoje.setHours(
         0,
         0,
         0,
@@ -3766,37 +3557,38 @@ function vaccineStatus(date) {
     );
 
 
-    const next =
-    new Date(
-        date +
-        "T00:00:00"
-    );
+    const proxima =
+        new Date(
+            data +
+            "T00:00:00"
+        );
 
 
-    const days =
-    Math.ceil(
-        (
-            next -
-            today
-        ) /
-        86400000
-    );
+    const dias =
+        Math.ceil(
+            (
+                proxima -
+                hoje
+            ) /
+            86400000
+        );
 
 
     if (
-        days < 0
+        dias <
+        0
     ) {
 
         return {
 
-            type:
-            "danger",
+            tipo:
+                "danger",
 
-            label:
-            "Atrasada",
+            texto:
+                "Atrasada",
 
-            days:
-            days
+            dias:
+                dias
 
         };
 
@@ -3804,19 +3596,20 @@ function vaccineStatus(date) {
 
 
     if (
-        days <= 30
+        dias <=
+        30
     ) {
 
         return {
 
-            type:
-            "warning",
+            tipo:
+                "warning",
 
-            label:
-            "Próxima",
+            texto:
+                "Próxima",
 
-            days:
-            days
+            dias:
+                dias
 
         };
 
@@ -3825,24 +3618,30 @@ function vaccineStatus(date) {
 
     return {
 
-        type:
-        "ok",
+        tipo:
+            "ok",
 
-        label:
-        "Em dia",
+        texto:
+            "Em dia",
 
-        days:
-        days
+        dias:
+            dias
 
     };
 
 }
 
 
-function formatDate(value) {
+/* ============================================================
+   FORMATAR DATA
+============================================================ */
+
+function formatarData(
+    valor
+) {
 
     if (
-        !value
+        !valor
     ) {
 
         return "--";
@@ -3850,26 +3649,32 @@ function formatDate(value) {
     }
 
 
-    const p =
-    value.split("-");
+    const partes =
+        valor.split("-");
 
 
     return (
-        p[2] +
+        partes[2] +
         "/" +
-        p[1] +
+        partes[1] +
         "/" +
-        p[0]
+        partes[0]
     );
 
 }
 
 
-function deleteVaccine(id) {
+/* ============================================================
+   EXCLUIR VACINA
+============================================================ */
+
+function excluirVacina(
+    id
+) {
 
     if (
         !confirm(
-            "Excluir este registro?"
+            "Deseja excluir este registro?"
         )
     ) {
 
@@ -3878,293 +3683,338 @@ function deleteVaccine(id) {
     }
 
 
-    const data =
-    getVaccines()
-    .filter(
-        item =>
-        item.id !== id
+    const lista =
+        obterVacinas()
+        .filter(
+            item =>
+            item.id !==
+            id
+        );
+
+
+    salvarVacinas(
+        lista
     );
 
 
-    setVaccines(
-        data
-    );
-
-
-    renderVaccines();
+    renderizarVacinas();
 
 }
 
 
-function renderVaccines() {
+/* ============================================================
+   RENDER VACINAS
+============================================================ */
 
-    const data =
-    getVaccines()
-    .sort(
-        (
-            a,
-            b
-        ) =>
-        new Date(a.next) -
-        new Date(b.next)
-    );
+function renderizarVacinas() {
 
-
-    const table =
-    document.getElementById(
-        "vaccineTable"
-    );
-
-
-    const alerts =
-    document.getElementById(
-        "vaccineAlerts"
-    );
+    const vacinas =
+        obterVacinas()
+        .sort(
+            (
+                a,
+                b
+            ) =>
+            new Date(
+                a.proxima
+            ) -
+            new Date(
+                b.proxima
+            )
+        );
 
 
-    table.innerHTML =
-    "";
+    const tabela =
+        document.getElementById(
+            "vaccineTable"
+        );
 
 
-    alerts.innerHTML =
-    "";
+    const alertas =
+        document.getElementById(
+            "vaccineAlerts"
+        );
 
 
-    let alertCount =
-    0;
+    tabela.innerHTML =
+        "";
+
+
+    alertas.innerHTML =
+        "";
+
+
+    let quantidadeAlertas =
+        0;
 
 
     if (
-        data.length === 0
+        vacinas.length ===
+        0
     ) {
 
-        table.innerHTML =
-        `
-        <tr>
-            <td
-                colspan="6"
-                style="
-                    text-align:center;
-                    padding:30px;
-                    color:#758078;
-                "
-            >
-                Nenhuma vacinação cadastrada.
-            </td>
-        </tr>
-        `;
+        tabela.innerHTML =
+            `
+            <tr>
+
+                <td
+                    colspan="6"
+                    style="
+                        text-align:center;
+                        padding:30px;
+                        color:#748078;
+                    "
+                >
+
+                    Nenhuma vacinação cadastrada.
+
+                </td>
+
+            </tr>
+            `;
 
     }
 
 
-    data.forEach(
-        item => {
+    vacinas.forEach(
+
+        function(item) {
 
             const status =
-            vaccineStatus(
-                item.next
-            );
+                statusVacina(
+                    item.proxima
+                );
 
 
-            const row =
-            document.createElement(
-                "tr"
-            );
+            const linha =
+                document.createElement(
+                    "tr"
+                );
 
 
-            row.innerHTML =
-            `
-            <td>
-                ${escapeHTML(item.animal)}
-            </td>
+            linha.innerHTML =
+                `
 
-            <td>
-                <strong>
-                    ${escapeHTML(item.vaccine)}
-                </strong>
-            </td>
+                <td>
+                    ${escapeHTML(item.animal)}
+                </td>
 
-            <td>
-                ${formatDate(item.date)}
-            </td>
+                <td>
+                    <strong>
+                        ${escapeHTML(item.nome)}
+                    </strong>
+                </td>
 
-            <td>
-                ${formatDate(item.next)}
-            </td>
+                <td>
+                    ${formatarData(item.aplicada)}
+                </td>
 
-            <td>
-                <span class="badge-status ${status.type}">
-                    ${status.label}
-                </span>
-            </td>
+                <td>
+                    ${formatarData(item.proxima)}
+                </td>
 
-            <td>
-                <button
-                    class="btn btn-danger"
-                    onclick="deleteVaccine(${item.id})"
-                >
-                    Excluir
-                </button>
-            </td>
-            `;
+                <td>
+
+                    <span
+                        class="badge ${status.tipo}"
+                    >
+
+                        ${status.texto}
+
+                    </span>
+
+                </td>
+
+                <td>
+
+                    <button
+                        class="button button-danger"
+                        onclick="excluirVacina(${item.id})"
+                    >
+
+                        Excluir
+
+                    </button>
+
+                </td>
+
+                `;
 
 
-            table.appendChild(
-                row
+            tabela.appendChild(
+                linha
             );
 
 
             if (
-                status.type ===
+                status.tipo ===
                 "warning" ||
-                status.type ===
+                status.tipo ===
                 "danger"
             ) {
 
-                alertCount++;
+                quantidadeAlertas++;
 
 
-                const alert =
-                document.createElement(
-                    "div"
-                );
+                const alerta =
+                    document.createElement(
+                        "div"
+                    );
 
 
-                alert.className =
-                "alert " +
-                status.type;
+                alerta.className =
+                    "alert " +
+                    status.tipo;
 
 
-                let text;
+                let mensagem =
+                    "";
 
 
                 if (
-                    status.days < 0
+                    status.dias <
+                    0
                 ) {
 
-                    text =
-                    "Atrasada há " +
-                    Math.abs(status.days) +
-                    " dia(s)";
+                    mensagem =
+                        "Atrasada há " +
+                        Math.abs(
+                            status.dias
+                        ) +
+                        " dia(s).";
 
                 }
                 else if (
-                    status.days === 0
+                    status.dias ===
+                    0
                 ) {
 
-                    text =
-                    "Dose prevista para hoje";
+                    mensagem =
+                        "Dose prevista para hoje.";
 
                 }
                 else {
 
-                    text =
-                    "Próxima dose em " +
-                    status.days +
-                    " dia(s)";
+                    mensagem =
+                        "Próxima dose em " +
+                        status.dias +
+                        " dia(s).";
 
                 }
 
 
-                alert.innerHTML =
-                `
-                <div>
+                alerta.innerHTML =
+                    `
+
+                    <div>
+
+                        <strong>
+                            ${escapeHTML(item.nome)}
+                        </strong>
+
+                        <br>
+
+                        ${escapeHTML(item.animal)}
+                        —
+                        ${mensagem}
+
+                    </div>
+
                     <strong>
-                        ${escapeHTML(item.vaccine)}
+                        ${formatarData(item.proxima)}
                     </strong>
 
-                    <br>
-
-                    ${escapeHTML(item.animal)}
-                    —
-                    ${text}
-                </div>
-
-                <strong>
-                    ${formatDate(item.next)}
-                </strong>
-                `;
+                    `;
 
 
-                alerts.appendChild(
-                    alert
+                alertas.appendChild(
+                    alerta
                 );
 
             }
 
         }
+
     );
 
 
     if (
-        alertCount === 0
+        quantidadeAlertas ===
+        0
     ) {
 
-        alerts.innerHTML =
-        `
-        <div class="alert ok">
-            Nenhuma vacinação próxima ou atrasada.
-        </div>
-        `;
+        alertas.innerHTML =
+            `
+            <div class="alert ok">
+                Nenhuma vacinação próxima ou atrasada.
+            </div>
+            `;
 
     }
 
 
-    const badge =
-    document.getElementById(
-        "vacAlert"
-    );
-
-
-    if (
-        alertCount > 0
-    ) {
-
-        badge.style.display =
-        "flex";
-
-        badge.innerText =
-        alertCount;
-
-    }
-    else {
-
-        badge.style.display =
-        "none";
-
-    }
-
-
-    if (
-        data.length > 0
-    ) {
-
+    const contador =
         document.getElementById(
-            "nextVaccine"
-        ).innerText =
-        data[0].vaccine;
-
-
-        document.getElementById(
-            "nextVaccineDate"
-        ).innerText =
-        formatDate(
-            data[0].next
+            "vacinationCount"
         );
 
+
+    if (
+        quantidadeAlertas >
+        0
+    ) {
+
+        contador.style.display =
+            "flex";
+
+
+        contador.innerText =
+            quantidadeAlertas;
+
+    }
+    else {
+
+        contador.style.display =
+            "none";
+
+    }
+
+
+    /* ========================================================
+       PRÓXIMA VACINA HOME
+    ======================================================== */
+
+    if (
+        vacinas.length >
+        0
+    ) {
+
+        document.getElementById(
+            "nextVaccine"
+        ).innerText =
+            vacinas[0].nome;
+
+
+        document.getElementById(
+            "nextVaccineDate"
+        ).innerText =
+            formatarData(
+                vacinas[0].proxima
+            );
+
     }
     else {
 
         document.getElementById(
             "nextVaccine"
         ).innerText =
-        "--";
+            "--";
 
 
         document.getElementById(
             "nextVaccineDate"
         ).innerText =
-        "Nenhuma cadastrada";
+            "Nenhuma cadastrada";
 
     }
 
@@ -4172,10 +4022,10 @@ function renderVaccines() {
 
 
 /* ============================================================
-   NOTIFICAÇÃO
+   NOTIFICAÇÕES
 ============================================================ */
 
-async function enableNotifications() {
+async function ativarNotificacoes() {
 
     if (
         !(
@@ -4186,7 +4036,7 @@ async function enableNotifications() {
     ) {
 
         alert(
-            "Seu navegador não suporta notificações."
+            "Este navegador não suporta notificações."
         );
 
         return;
@@ -4194,22 +4044,27 @@ async function enableNotifications() {
     }
 
 
-    const permission =
-    await Notification
-    .requestPermission();
+    const permissao =
+        await Notification
+        .requestPermission();
 
 
     if (
-        permission ===
+        permissao ===
         "granted"
     ) {
 
         new Notification(
+
             "BoviGPS",
+
             {
+
                 body:
-                "Alertas ativados."
+                    "Alertas de vacinação ativados."
+
             }
+
         );
 
     }
@@ -4218,19 +4073,21 @@ async function enableNotifications() {
 
 
 /* ============================================================
-   HTML SEGURO
+   ESCAPE HTML
 ============================================================ */
 
-function escapeHTML(text) {
+function escapeHTML(
+    texto
+) {
 
     const div =
-    document.createElement(
-        "div"
-    );
+        document.createElement(
+            "div"
+        );
 
 
     div.textContent =
-    text;
+        texto;
 
 
     return div.innerHTML;
@@ -4239,59 +4096,12 @@ function escapeHTML(text) {
 
 
 /* ============================================================
-   RECUPERAR ÚLTIMA LOCALIZAÇÃO
+   INICIAR
 ============================================================ */
 
-try {
-
-    const saved =
-    JSON.parse(
-        localStorage.getItem(
-            "bovigps_last_location"
-        )
-    );
-
-
-    if (
-        saved &&
-        validCoordinates(
-            saved.latitude,
-            saved.longitude
-        )
-    ) {
-
-        updateLocation({
-
-            latitude:
-            saved.latitude,
-
-            longitude:
-            saved.longitude,
-
-            precisao_m:
-            saved.accuracy
-
-        });
-
-        document.getElementById(
-            "mapStatus"
-        ).innerText =
-        "Última posição salva";
-
-    }
-
-}
-catch {}
-
-
-/* ============================================================
-   INICIAR VACINAS
-============================================================ */
-
-renderVaccines();
+renderizarVacinas();
 
 </script>
 
 </body>
-
 </html>
